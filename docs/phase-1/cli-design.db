@@ -1,0 +1,21 @@
+For the CLI I want to build it with .NET. Only reason being is because i'm well versed in the stack and I don't want the overhead with trying to learn a new stack for building this CLI.
+
+This CLI will be used by an admin (ME) and will not be user facing. The main purpose is to:
+
+- CREATE/READ/UPDATE/DELETE playable streams
+- view analystics
+
+The general pipeline is as follows:
+
+1. admin uploads audio
+2. cli then uploads it to our service that generates/stores blobs
+3. that service gives us the protected blob url and also the playable stream
+4. we then insert it into the DB
+
+We are going to use Backblaze as the blob storage, but currently they do not have a .NET SDK so we'll use their prescribed method of using the AWS SDK. Please double check backblaze docs on this.
+
+Here's the arguements i'm thinking of:
+
+--file or -f "some local file"
+--title or -t "title of the file"
+--published or -p "publish or not"
