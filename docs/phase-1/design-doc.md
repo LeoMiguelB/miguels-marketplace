@@ -27,6 +27,8 @@ We have data, and the data is simple:
 
 I think knowing the above requirements we can benefit from using some relational database. I  would prefer postgres as the flavor of SQL as i'm most familiar with it. I do want to note we are definitely not going to use all features of postgres but I think having those extra features readily available for the future as opposed to having potentially migrate from one flavor to another or even worse if we decide to go with NoSQL and later on we want a relational database, it'd a big pain.
 
+Moreover since we want a generous free tier, supabase is the best option. It's proven to be reliable and easy to use for years now. I'm also familiar with it.
+
 > see db-design.md for how the tables are structured
 
 ### Storing Objects

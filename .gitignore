@@ -1,0 +1,14 @@
+.env
+.env.local
+.env*.local
+app/.env.local
+app/cli/.env
+app/node_modules/
+app/.next/
+app/out/
+app/cli/bin/
+app/cli/obj/
+supabase/.temp/
+supabase/.branches/
+.prompt-cache
+.superpowers/

@@ -1,0 +1,37 @@
+services:
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    restart: on-failure
+    volumes:
+      - ./minio/stream-public-policy.json:/policy.json:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 8
+        mc alias set local http://minio:9000 minioadmin minioadmin
+        mc mb -p local/music
+        mc anonymous set-json /policy.json local/music
+
+  minio-mc:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    profiles: ["tools"]
+    entrypoint: ["mc"]
+
+volumes:
+  minio-data:
