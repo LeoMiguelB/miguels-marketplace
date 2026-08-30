@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="PersonalMusicStore.Cli.csproj" />
+  <Project Path="PersonalMusicStore.Cli.Tests/PersonalMusicStore.Cli.Tests.csproj" />
+</Solution>

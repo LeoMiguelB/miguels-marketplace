@@ -6,8 +6,8 @@ app/cli/.env
 app/node_modules/
 app/.next/
 app/out/
-app/cli/bin/
-app/cli/obj/
+app/cli/**/bin/
+app/cli/**/obj/
 supabase/.temp/
 supabase/.branches/
 .prompt-cache

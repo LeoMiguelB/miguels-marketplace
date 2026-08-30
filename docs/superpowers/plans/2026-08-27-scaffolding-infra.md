@@ -6,7 +6,7 @@
 
 **Architecture:** Next.js in `app/` (App Router under `src/app`) owns a secret-gated upload stub and unused server-only Postgres/S3 clients. Schema lives in `supabase/migrations/` and is applied with the Supabase CLI. MinIO is a separate Compose file (S3 API). The .NET CLI lives in `app/cli/`, prints help, and POSTs create to the stub without inserting rows.
 
-**Tech Stack:** Next.js App Router, TypeScript, npm, postgres.js, AWS SDK v3, Supabase CLI, Docker Compose (MinIO), .NET 8, System.CommandLine, Npgsql (package only this pass).
+**Tech Stack:** Next.js App Router, TypeScript, npm, postgres.js, AWS SDK v3, Supabase CLI, Docker Compose (MinIO), .NET 10, System.CommandLine, Npgsql (package only this pass).
 
 ## Global Constraints
 
@@ -44,7 +44,7 @@
 | `app/src/app/api/admin/upload/route.ts` | `POST` stub |
 | `app/src/lib/admin-auth.test.ts` | Auth unit tests |
 | `app/src/app/api/admin/upload/route.test.ts` | 401/501 tests |
-| `app/cli/PersonalMusicStore.Cli.csproj` | .NET 8 console |
+| `app/cli/PersonalMusicStore.Cli.csproj` | .NET 10 console |
 | `app/cli/EnvLoader.cs` | Load `app/cli/.env` |
 | `app/cli/CreatePlayableAudio.cs` | POST multipart to upload URL |
 | `app/cli/Program.cs` | Commands: create/list/update/delete/analytics |
@@ -768,10 +768,10 @@ EOF
 
 ```bash
 cd /home/lbantoli/Desktop/projects/personal-music-store/app/cli
-dotnet new console -n PersonalMusicStore.Cli -o . --framework net8.0 --force
+dotnet new console -n PersonalMusicStore.Cli -o . --framework net10.0 --force
 dotnet add package System.CommandLine --version 2.0.0
 dotnet add package Npgsql
-dotnet new xunit -n PersonalMusicStore.Cli.Tests -o PersonalMusicStore.Cli.Tests --framework net8.0
+dotnet new xunit -n PersonalMusicStore.Cli.Tests -o PersonalMusicStore.Cli.Tests --framework net10.0
 dotnet add PersonalMusicStore.Cli.Tests/PersonalMusicStore.Cli.Tests.csproj reference PersonalMusicStore.Cli.csproj
 ```
 

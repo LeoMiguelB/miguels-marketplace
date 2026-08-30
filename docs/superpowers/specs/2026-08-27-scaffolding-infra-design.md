@@ -63,7 +63,7 @@ personal-music-store/
 - Next.js (current App Router), TypeScript, `src/` directory, npm.
 - Server SQL: `postgres` (postgres.js) with parameterized SQL. Migrations stay in `supabase/migrations/` only. Do not introduce a second migrator (no Prisma migrate, no Drizzle migrate).
 - S3: AWS SDK v3 (`@aws-sdk/client-s3`), path-style addressing for MinIO.
-- CLI: .NET 8, `System.CommandLine`, Npgsql.
+- CLI: .NET 10, `System.CommandLine`, Npgsql.
 - Supabase CLI for `init` / `start` / `db reset`.
 
 ## Local infra
