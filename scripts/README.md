@@ -6,7 +6,9 @@ Docker volumes do not clone. After you bring MinIO and Postgres up, run these fr
 
 ## `verify-minio.sh`
 
-MinIO is live on `127.0.0.1:9000` and bucket `music` exists.
+MinIO is live on `127.0.0.1:9000`, bucket `music` exists, and anonymous `GetObject` is allowed on `stream/` and `cover/`.
+
+Re-applies `minio/stream-public-policy.json` each run (init does not rerun after the first success).
 
 ```bash
 docker compose up -d minio minio-init

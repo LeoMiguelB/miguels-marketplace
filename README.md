@@ -45,13 +45,15 @@ Two processes. Keep them running.
 
 ```bash
 docker compose up -d minio minio-init
-./scripts/verify-minio.sh   # expect: MinIO OK
+./scripts/verify-minio.sh   # reapplies stream/ + cover/ policy; expect: MinIO OK
 ```
 
 API: `http://127.0.0.1:9000`  
 Console: `http://127.0.0.1:9001` (user/pass `minioadmin` / `minioadmin`)
 
 Public `GetObject` is allowed on `stream/` and `cover/` in that bucket. `download/` stays private.
+
+`minio-init` applies the policy on first boot only. `./scripts/verify-minio.sh` writes `minio/stream-public-policy.json` onto the live bucket every time, so an old volume still gets `cover/` public.
 
 **2. Postgres** (Supabase local):
 

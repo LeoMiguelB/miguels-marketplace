@@ -31,6 +31,8 @@ services:
     depends_on:
       - minio
     profiles: ["tools"]
+    volumes:
+      - ./minio/stream-public-policy.json:/policy.json:ro
     entrypoint: ["mc"]
 
 volumes:
