@@ -1,0 +1,55 @@
+<h2>Section 4 — data + empty / error</h2>
+<p class="subtitle">What <code>/</code> is allowed to know. What the visitor sees when that fails.</p>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-image">
+      <div style="background:#111;border:1px solid #2a2a2a;padding:20px;font-family:ui-monospace,monospace;color:#888;text-align:center;min-height:100px;display:flex;align-items:center;justify-content:center;">
+        NO_PUBLISHED_TRACKS
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Empty catalog</h3>
+      <p>Query ok, zero published rows. No fake cards. No bar.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-image">
+      <div style="background:#111;border:1px solid #2a2a2a;padding:20px;font-family:ui-monospace,monospace;color:#888;text-align:center;min-height:100px;display:flex;align-items:center;justify-content:center;">
+        CATALOG_UNAVAILABLE
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>DB / query fail</h3>
+      <p>Page still paints. Same header. No grid. No stack traces.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-image">
+      <div style="background:#111;border:1px solid #2a2a2a;font-family:ui-monospace,monospace;color:#e4e4e4;">
+        <div style="padding:8px 10px;border-bottom:1px solid #2a2a2a;font-size:10px;">bar · TAPE_LOOP</div>
+        <div style="padding:16px;color:#888;font-size:11px;">STREAM_UNAVAILABLE</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Stream 404 / fail</h3>
+      <p>Bar stays. Transport dead. Cover + title still there.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Public read (server only)</h3>
+  <p>Published rows only. Fields the UI may use: <code>id</code>, <code>title</code>, <code>stream_blob_url</code>, cover URL. Browser never talks to Postgres or S3 keys.</p>
+  <p><strong>Assumption:</strong> cover is a public blob URL on the track row (name TBD — <code>docs/phase-2/db-design.md</code> is intent only). Same idea as stream: public GetObject. Not the download object.</p>
+  <p><strong>Never</strong> select or send <code>download_blob_url</code> on any public route. No public install POST in this phase.</p>
+</div>
+
+<div class="section">
+  <h3>Other states</h3>
+  <ul>
+    <li>Cover 404: empty square, title still shows. Track still playable.</li>
+    <li>DOWNLOAD click (modal): <code>DOWNLOAD_UNAVAILABLE</code>. Already locked.</li>
+    <li>Sort: newest published first (<code>created_at desc</code>). <strong>Assumption</strong> until you say otherwise.</li>
+  </ul>
+</div>

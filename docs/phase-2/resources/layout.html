@@ -1,0 +1,170 @@
+<h2>Where does play + install live?</h2>
+<p class="subtitle">One-page store. Click a cover card, then listen and install without leaving the page. Pick the chrome that feels right.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="width:100%;max-width:360px;margin:0 auto;background:#0f0f12;border:1px solid #2a2a32;border-radius:6px;overflow:hidden;font-family:system-ui,sans-serif;font-size:10px;color:#aaa;">
+        <div style="padding:8px 10px;border-bottom:1px solid #2a2a32;display:flex;align-items:center;justify-content:space-between;">
+          <span style="color:#eee;font-weight:600;font-size:11px;">Miguel's Marketplace</span>
+          <span style="color:#666;font-size:9px;">kits · melodies · instrumentals</span>
+        </div>
+        <div style="padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;min-height:200px;">
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#3d2c5a,#1a1028);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">Night Kit</span>
+          </div>
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;outline:2px solid #7c5cff;outline-offset:1px;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#c45c26,#5a2a10);border-radius:3px;margin-bottom:4px;position:relative;">
+              <span style="position:absolute;bottom:2px;right:2px;background:#7c5cff;color:#fff;font-size:7px;padding:1px 4px;border-radius:2px;">▶ selected</span>
+            </div>
+            <span style="color:#eee;font-size:8px;font-weight:600;">Tape Loop</span>
+          </div>
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#1a4a3a,#0a2018);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">Drift Melody</span>
+          </div>
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#2a3a5a,#101828);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">808 Pack</span>
+          </div>
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#5a2a4a,#281018);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">Sunset Inst.</span>
+          </div>
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#4a4a2a,#202010);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">Dust Kit</span>
+          </div>
+        </div>
+        <div style="border-top:2px solid #7c5cff;background:#16161c;padding:8px 10px;display:flex;align-items:center;gap:8px;">
+          <span style="color:#7c5cff;font-size:8px;white-space:nowrap;">▼ sticky player bar</span>
+          <div style="width:28px;height:28px;background:linear-gradient(135deg,#c45c26,#5a2a10);border-radius:3px;flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="color:#eee;font-size:9px;font-weight:600;">Tape Loop</div>
+            <div style="color:#666;font-size:7px;">now playing</div>
+          </div>
+          <div style="width:22px;height:22px;border:1px solid #555;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#eee;font-size:8px;">▶</div>
+          <div style="background:#7c5cff;color:#fff;font-size:8px;padding:4px 8px;border-radius:3px;font-weight:600;white-space:nowrap;">Install</div>
+        </div>
+        <div style="background:#12121a;border-top:1px dashed #333;padding:6px 10px;font-size:7px;color:#555;text-align:center;">T&amp;C expands ↑ from bar</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Sticky player bar</h3>
+      <p>Catalog grid stays full-page. Selected track plays in a bottom bar (art thumb + title + play + Install). Install/T&amp;C expand from the bar.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="width:100%;max-width:360px;margin:0 auto;background:#0f0f12;border:1px solid #2a2a32;border-radius:6px;overflow:hidden;font-family:system-ui,sans-serif;font-size:10px;color:#aaa;">
+        <div style="padding:8px 10px;border-bottom:1px solid #2a2a32;display:flex;align-items:center;justify-content:space-between;">
+          <span style="color:#eee;font-weight:600;font-size:11px;">Miguel's Marketplace</span>
+          <span style="color:#666;font-size:9px;">kits · melodies · instrumentals</span>
+        </div>
+        <div style="background:#14141a;border-bottom:2px solid #7c5cff;padding:12px;display:flex;gap:12px;align-items:center;">
+          <span style="color:#7c5cff;font-size:8px;position:absolute;margin-top:-18px;">▼ hero — selected track</span>
+          <div style="width:72px;height:72px;background:linear-gradient(135deg,#c45c26,#5a2a10);border-radius:6px;flex-shrink:0;outline:2px solid #7c5cff;"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="color:#eee;font-size:12px;font-weight:700;margin-bottom:6px;">Tape Loop</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div style="flex:1;height:4px;background:#2a2a32;border-radius:2px;position:relative;">
+                <div style="width:35%;height:100%;background:#7c5cff;border-radius:2px;"></div>
+              </div>
+              <span style="color:#888;font-size:8px;">▶ player</span>
+            </div>
+            <div style="background:#7c5cff;color:#fff;font-size:9px;padding:5px 12px;border-radius:4px;display:inline-block;font-weight:600;">Install</div>
+          </div>
+        </div>
+        <div style="padding:8px 10px 4px;color:#666;font-size:8px;">other tracks ↓</div>
+        <div style="padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;opacity:0.7;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#3d2c5a,#1a1028);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">Night Kit</span>
+          </div>
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;opacity:0.7;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#1a4a3a,#0a2018);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">Drift Melody</span>
+          </div>
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;opacity:0.7;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#2a3a5a,#101828);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">808 Pack</span>
+          </div>
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;opacity:0.7;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#5a2a4a,#281018);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">Sunset Inst.</span>
+          </div>
+          <div style="background:#1e1e24;border-radius:4px;padding:4px;opacity:0.7;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#4a4a2a,#202010);border-radius:3px;margin-bottom:4px;"></div>
+            <span style="color:#ccc;font-size:8px;">Dust Kit</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Hero swap</h3>
+      <p>Selected track takes the top: big cover, title, player, Install. Grid of other tracks stays below.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="width:100%;max-width:360px;margin:0 auto;background:#0f0f12;border:1px solid #2a2a32;border-radius:6px;overflow:hidden;font-family:system-ui,sans-serif;font-size:10px;color:#aaa;">
+        <div style="padding:8px 10px;border-bottom:1px solid #2a2a32;display:flex;align-items:center;justify-content:space-between;">
+          <span style="color:#eee;font-weight:600;font-size:11px;">Miguel's Marketplace</span>
+          <span style="color:#666;font-size:9px;">kits · melodies · instrumentals</span>
+        </div>
+        <div style="display:flex;min-height:220px;">
+          <div style="flex:1;padding:8px;border-right:1px solid #2a2a32;">
+            <div style="color:#666;font-size:7px;margin-bottom:6px;">catalog grid</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">
+              <div style="background:#1e1e24;border-radius:4px;padding:3px;">
+                <div style="aspect-ratio:1;background:linear-gradient(135deg,#3d2c5a,#1a1028);border-radius:3px;margin-bottom:3px;"></div>
+                <span style="color:#ccc;font-size:7px;">Night Kit</span>
+              </div>
+              <div style="background:#1e1e24;border-radius:4px;padding:3px;outline:2px solid #7c5cff;">
+                <div style="aspect-ratio:1;background:linear-gradient(135deg,#c45c26,#5a2a10);border-radius:3px;margin-bottom:3px;"></div>
+                <span style="color:#eee;font-size:7px;font-weight:600;">Tape Loop</span>
+              </div>
+              <div style="background:#1e1e24;border-radius:4px;padding:3px;">
+                <div style="aspect-ratio:1;background:linear-gradient(135deg,#1a4a3a,#0a2018);border-radius:3px;margin-bottom:3px;"></div>
+                <span style="color:#ccc;font-size:7px;">Drift Melody</span>
+              </div>
+              <div style="background:#1e1e24;border-radius:4px;padding:3px;">
+                <div style="aspect-ratio:1;background:linear-gradient(135deg,#2a3a5a,#101828);border-radius:3px;margin-bottom:3px;"></div>
+                <span style="color:#ccc;font-size:7px;">808 Pack</span>
+              </div>
+              <div style="background:#1e1e24;border-radius:4px;padding:3px;">
+                <div style="aspect-ratio:1;background:linear-gradient(135deg,#5a2a4a,#281018);border-radius:3px;margin-bottom:3px;"></div>
+                <span style="color:#ccc;font-size:7px;">Sunset Inst.</span>
+              </div>
+              <div style="background:#1e1e24;border-radius:4px;padding:3px;">
+                <div style="aspect-ratio:1;background:linear-gradient(135deg,#4a4a2a,#202010);border-radius:3px;margin-bottom:3px;"></div>
+                <span style="color:#ccc;font-size:7px;">Dust Kit</span>
+              </div>
+            </div>
+          </div>
+          <div style="width:130px;background:#14141a;padding:10px;display:flex;flex-direction:column;gap:8px;border-left:2px solid #7c5cff;">
+            <span style="color:#7c5cff;font-size:7px;">▼ side panel</span>
+            <div style="width:100%;aspect-ratio:1;background:linear-gradient(135deg,#c45c26,#5a2a10);border-radius:4px;"></div>
+            <div style="color:#eee;font-size:10px;font-weight:600;">Tape Loop</div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <div style="width:20px;height:20px;border:1px solid #555;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#eee;font-size:7px;">▶</div>
+              <span style="color:#888;font-size:7px;">player</span>
+            </div>
+            <div style="background:#7c5cff;color:#fff;font-size:8px;padding:5px;border-radius:3px;text-align:center;font-weight:600;">Install</div>
+            <div style="border:1px dashed #333;border-radius:3px;padding:4px;font-size:6px;color:#555;text-align:center;line-height:1.4;">T&amp;C<br>form fields</div>
+          </div>
+        </div>
+        <div style="background:#12121a;border-top:1px dashed #333;padding:5px 10px;font-size:7px;color:#555;text-align:center;">mobile → drawer slides in from right</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Side panel</h3>
+      <p>Grid on the left. Right panel shows selected art, player, install form. Mobile: panel becomes a drawer.</p>
+    </div>
+  </div>
+
+</div>

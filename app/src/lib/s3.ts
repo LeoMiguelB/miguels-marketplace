@@ -3,6 +3,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 
 export const STREAM_PREFIX = "stream/";
 export const DOWNLOAD_PREFIX = "download/";
+export const COVER_PREFIX = "cover/";
 
 export const bucket = process.env.S3_BUCKET ?? "";
 

@@ -5,7 +5,10 @@
       "Effect": "Allow",
       "Principal": { "AWS": ["*"] },
       "Action": ["s3:GetObject"],
-      "Resource": ["arn:aws:s3:::music/stream/*"]
+      "Resource": [
+        "arn:aws:s3:::music/stream/*",
+        "arn:aws:s3:::music/cover/*"
+      ]
     }
   ]
 }
