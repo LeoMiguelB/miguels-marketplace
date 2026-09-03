@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "miguel.store",
+  title: "miguelbbeats.store",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

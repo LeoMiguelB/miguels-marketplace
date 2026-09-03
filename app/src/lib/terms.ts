@@ -1,14 +1,17 @@
-export const TERMS = `If you use this file for profit, you owe Miguel X% of that revenue. Personal and non-profit use is free.
+export const TERMS = `MiguelBbeats Sample Clearance
+Beatstars Name - MiguelBbeats
+Instagram - Miguel.b_pna
+Contact - Miguel.bbeats2@gmail.com
 
-These terms apply to every download from this store. They are not per-track.
+If selling a beat through beatstars containing Miguel.b’ samples you are required to split percentage equally with Miguel.b. (Beatstars name is above)
 
-You may listen to the public stream on this page without accepting these terms. Install and download are a separate act.
+If a record is placed using the sample(s), the publishing rights and masters (royalties) will be split equally between Miguel.b & the producers involved on the record. Also credit must be issued to Miguel.b plus the producer(s) involved on the loop.
 
-Do not redistribute the download file. Do not claim the work as your own. Credit Miguel when the file is used in a public release.
+If a non major/major label or independent artist offers an advance or flat-fee for the production which uses the sample(s), an equal split must be given to Miguel.b.
 
-If a later written agreement sets a different split, that agreement wins. Until then, X% is the placeholder rate.
+You must always credit (Prod. Miguel.b x "Your Name") or if applicable, include any other collaborators on the loop.
 
-Keep scrolling. The accept checkbox stays locked until the last line is in view.
+All contents in this folder are owned by Miguel.b (and if applicable any other collaborators on the loop).
 
-Last line: you have reached the end of these terms.
+Ignorance or failing to read this text document is no excuse/exception to the consequences of legal action taken.
 `;

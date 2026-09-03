@@ -36,6 +36,22 @@ export function downloadEnabled(input: { email: string; accepted: boolean }): bo
   return emailValid(input.email) && input.accepted;
 }
 
-export function submitDownload(): { status: "DOWNLOAD_UNAVAILABLE" } {
-  return { status: "DOWNLOAD_UNAVAILABLE" };
+export async function submitDownload(
+  fields: InstallFields,
+  trackId: number
+): Promise<{ status: "DOWNLOAD_SUCCESS"; url: string } | { status: "DOWNLOAD_UNAVAILABLE" }> {
+  try {
+    const res = await fetch("/api/install", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...fields, trackId }),
+    });
+    if (!res.ok) {
+      return { status: "DOWNLOAD_UNAVAILABLE" };
+    }
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    return { status: "DOWNLOAD_UNAVAILABLE" };
+  }
 }

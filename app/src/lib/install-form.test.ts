@@ -52,13 +52,23 @@ describe("gates", () => {
 });
 
 describe("submitDownload", () => {
-  test("never fetches; returns DOWNLOAD_UNAVAILABLE", () => {
+  test("calls fetch and returns DOWNLOAD_SUCCESS", async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = () => {
-      throw new Error("fetch must not run");
+    globalThis.fetch = async () => {
+      return {
+        ok: true,
+        json: async () => ({ status: "DOWNLOAD_SUCCESS", url: "https://test.com/file" }),
+      } as unknown as Response;
     };
     try {
-      expect(submitDownload()).toEqual({ status: "DOWNLOAD_UNAVAILABLE" });
+      const res = await submitDownload({
+        email: "a@b.c",
+        name: "",
+        role: "",
+        instagram: "",
+        x: "",
+      }, 1);
+      expect(res).toEqual({ status: "DOWNLOAD_SUCCESS", url: "https://test.com/file" });
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -1,4 +1,4 @@
-﻿using System.CommandLine;
+using System.CommandLine;
 using PersonalMusicStore.Cli;
 
 EnvLoader.Load(Path.Combine(AppContext.BaseDirectory, ".env"));
@@ -21,11 +21,17 @@ var publishedOption = new Option<string>("--published", "-p")
     Description = "true or false",
     Required = true,
 };
+var coverOption = new Option<FileInfo?>("--cover")
+{
+    Description = "Optional local cover image",
+    Required = false,
+};
 
 var create = new Command("create", "Create a playable audio row (upload then insert)");
 create.Options.Add(fileOption);
 create.Options.Add(titleOption);
 create.Options.Add(publishedOption);
+create.Options.Add(coverOption);
 create.SetAction(async (parseResult, ct) =>
 {
     var publishedRaw = parseResult.GetValue(publishedOption);
@@ -37,13 +43,19 @@ create.SetAction(async (parseResult, ct) =>
 
     var uploadUrl = Environment.GetEnvironmentVariable("UPLOAD_API_URL");
     var secret = Environment.GetEnvironmentVariable("ADMIN_SECRET");
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
     if (string.IsNullOrWhiteSpace(uploadUrl) || string.IsNullOrWhiteSpace(secret))
     {
         await Console.Error.WriteLineAsync("UPLOAD_API_URL and ADMIN_SECRET are required");
         return 1;
     }
+    if (string.IsNullOrWhiteSpace(databaseUrl))
+    {
+        await Console.Error.WriteLineAsync("DATABASE_URL is required");
+        return 1;
+    }
 
-    using var http = new HttpClient();
+    using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
     return await CreatePlayableAudio.RunAsync(
         http,
         uploadUrl,
@@ -51,25 +63,83 @@ create.SetAction(async (parseResult, ct) =>
         parseResult.GetValue(fileOption)!,
         parseResult.GetValue(titleOption)!,
         publishedRaw == "true",
+        parseResult.GetValue(coverOption),
+        (title, published, stream, download, cover) =>
+            InsertPlayableAudioRow.RunAsync(databaseUrl, title, published, stream, download, cover),
         Console.Out,
         Console.Error);
 });
 
 root.Subcommands.Add(create);
-root.Subcommands.Add(NotImplementedCommand("list", "List playable audio"));
-root.Subcommands.Add(NotImplementedCommand("update", "Update playable audio"));
-root.Subcommands.Add(NotImplementedCommand("delete", "Delete playable audio"));
-root.Subcommands.Add(NotImplementedCommand("analytics", "View analytics"));
+
+var listCommand = new Command("list", "List playable audio");
+listCommand.SetAction(async (parseResult, ct) =>
+{
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (string.IsNullOrWhiteSpace(databaseUrl))
+    {
+        await Console.Error.WriteLineAsync("DATABASE_URL is required");
+        return 1;
+    }
+    return await ListPlayableAudio.RunAsync(databaseUrl);
+});
+root.Subcommands.Add(listCommand);
+
+var updateCommand = new Command("update", "Update playable audio");
+var updateIdOption = new Option<int>("--id") { Required = true, Description = "ID of the audio to update" };
+var updateTitleOption = new Option<string?>("--title") { Description = "New title for the audio" };
+var updatePublishedOption = new Option<bool?>("--published") { Description = "New published status (true/false)" };
+updateCommand.Options.Add(updateIdOption);
+updateCommand.Options.Add(updateTitleOption);
+updateCommand.Options.Add(updatePublishedOption);
+updateCommand.SetAction(async (parseResult, ct) =>
+{
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (string.IsNullOrWhiteSpace(databaseUrl))
+    {
+        await Console.Error.WriteLineAsync("DATABASE_URL is required");
+        return 1;
+    }
+    var id = parseResult.GetValue(updateIdOption);
+    var title = parseResult.GetValue(updateTitleOption);
+    var published = parseResult.GetValue(updatePublishedOption);
+    return await UpdatePlayableAudio.RunAsync(databaseUrl, id, title, published);
+});
+root.Subcommands.Add(updateCommand);
+
+var deleteCommand = new Command("delete", "Delete playable audio");
+var deleteIdOption = new Option<int>("--id") { Required = true, Description = "ID of the audio to delete" };
+var forceOption = new Option<bool>("--force") { Description = "Force delete including S3 files" };
+deleteCommand.Options.Add(deleteIdOption);
+deleteCommand.Options.Add(forceOption);
+deleteCommand.SetAction(async (parseResult, ct) =>
+{
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (string.IsNullOrWhiteSpace(databaseUrl))
+    {
+        await Console.Error.WriteLineAsync("DATABASE_URL is required");
+        return 1;
+    }
+    var id = parseResult.GetValue(deleteIdOption);
+    var force = parseResult.GetValue(forceOption);
+    return await DeletePlayableAudio.RunAsync(databaseUrl, id, force);
+});
+root.Subcommands.Add(deleteCommand);
+
+var analyticsCommand = new Command("analytics", "View analytics");
+var analyticsIdOption = new Option<int?>("--id") { Description = "Optional ID of the audio to view specific analytics" };
+analyticsCommand.Options.Add(analyticsIdOption);
+analyticsCommand.SetAction(async (parseResult, ct) =>
+{
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (string.IsNullOrWhiteSpace(databaseUrl))
+    {
+        await Console.Error.WriteLineAsync("DATABASE_URL is required");
+        return 1;
+    }
+    var id = parseResult.GetValue(analyticsIdOption);
+    return await AnalyticsCommand.RunAsync(databaseUrl, id);
+});
+root.Subcommands.Add(analyticsCommand);
 
 return await root.Parse(args).InvokeAsync();
-
-static Command NotImplementedCommand(string name, string description)
-{
-    var command = new Command(name, description);
-    command.SetAction(async (_, _) =>
-    {
-        await Console.Error.WriteLineAsync("not implemented");
-        return 1;
-    });
-    return command;
-}

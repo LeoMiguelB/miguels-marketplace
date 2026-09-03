@@ -84,16 +84,16 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 With infra up and no published rows you should see the catalog header and `NO_PUBLISHED_TRACKS`. If Postgres is down you see `CATALOG_UNAVAILABLE`.
 
-There is no seed catalog. Admin upload (`POST /api/admin/upload`) still returns `501`. The CLI `create` command posts to that route and does not insert a row. To see a real cover and stream you have to put objects in MinIO yourself and insert a published `playable_audio` row (published rows require a non-empty `cover_blob_url`).
+There is no seed catalog. Create tracks with the admin CLI (audio required, cover optional). Published rows without a cover show a `#2a2a2a` square on `/`.
 
-## Admin CLI (optional)
+## Admin CLI
 
-```bash
-cd app/cli
-dotnet run -- --help
-```
+Needs `app/cli/.env` (`UPLOAD_API_URL`, `ADMIN_SECRET`, `DATABASE_URL`). Next.js must be running. Then from `app/cli`:
 
-`create` needs `--file` / `-f`, `--title` / `-t`, `--published` / `-p` (`true` or `false`). With the current upload stub, a valid secret yields `not implemented` (HTTP 501). `list`, `update`, `delete`, and `analytics` print `not implemented`.
+- `dotnet run -- create -t "crash" -p true -f /path/to/crash.wav`
+- `dotnet run -- create -t "crash" -p true -f /path/to/crash.wav --cover /path/to/art.png`
+
+Success prints the new row id. `list`, `update`, `delete`, and `analytics` still print `not implemented`.
 
 ## Tests
 

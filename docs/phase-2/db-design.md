@@ -4,8 +4,8 @@
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| cover_blob_url | text not null default `''` | Public cover image. Player and cards use this. Empty means no art (UI shows an empty square). |
+| cover_blob_url | text not null default `''` | Public cover image. Player and cards use this. Empty means no art (UI shows a `#2a2a2a` square). |
 
-Check `playable_audio_published_cover_check`: a published row must have a non-empty `cover_blob_url`. Unpublished rows may keep `''`.
+Published rows may have `cover_blob_url = ''`. There is no check requiring cover art to publish.
 
 Objects live under the `cover/` prefix (public `GetObject`), same bucket as `stream/`.

@@ -18,4 +18,13 @@ if [[ "$col" != "cover_blob_url" ]]; then
   exit 1
 fi
 
+check_name="$(psql "$DB_URL" -Atc "select conname from pg_constraint where conname = 'playable_audio_published_cover_check'")"
+if [[ -n "$check_name" ]]; then
+  echo "playable_audio_published_cover_check still present"
+  exit 1
+fi
+
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into playable_audio (title, published, stream_blob_url, download_blob_url, cover_blob_url) values ('verify-empty-cover', true, 's', 'd', '');" >/dev/null
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from playable_audio where title = 'verify-empty-cover';" >/dev/null
+
 echo "Schema OK"

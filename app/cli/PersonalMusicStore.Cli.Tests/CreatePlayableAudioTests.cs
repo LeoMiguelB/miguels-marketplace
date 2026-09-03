@@ -8,10 +8,26 @@ namespace PersonalMusicStore.Cli.Tests;
 
 public class CreatePlayableAudioTests
 {
-    private static async Task<(int Exit, string Stdout, string Stderr)> Invoke(
+    private static InsertPlayableAudio NoInsert =>
+        (_, _, _, _, _) => throw new InvalidOperationException("insert should not run");
+
+    private static async Task<(int Exit, string Stdout, string Stderr, bool Inserted)> Invoke(
         HttpStatusCode status,
-        string json)
+        string json,
+        FileInfo? cover = null,
+        InsertPlayableAudio? insert = null)
     {
+        var inserted = false;
+        InsertPlayableAudio wrapped = async (t, p, s, d, c) =>
+        {
+            inserted = true;
+            if (insert is null)
+            {
+                throw new InvalidOperationException("insert should not run");
+            }
+            return await insert(t, p, s, d, c);
+        };
+
         var handler = new StubHandler(new HttpResponseMessage(status)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json"),
@@ -28,25 +44,57 @@ public class CreatePlayableAudioTests
             file,
             "Title",
             true,
+            cover,
+            wrapped,
             stdout,
             stderr);
-        return (exit, stdout.ToString(), stderr.ToString());
+        return (exit, stdout.ToString(), stderr.ToString(), inserted);
     }
 
     [Fact]
     public async Task Unauthorized_prints_secret_failed()
     {
-        var (exit, _, stderr) = await Invoke(HttpStatusCode.Unauthorized, """{"error":"unauthorized"}""");
+        var (exit, _, stderr, inserted) = await Invoke(HttpStatusCode.Unauthorized, """{"error":"unauthorized"}""");
         Assert.Equal(1, exit);
         Assert.Contains("secret failed", stderr);
+        Assert.False(inserted);
     }
 
     [Fact]
-    public async Task NotImplemented_prints_server_message()
+    public async Task NotImplemented_is_unexpected_and_does_not_insert()
     {
-        var (exit, stdout, _) = await Invoke(HttpStatusCode.NotImplemented, """{"error":"not implemented"}""");
+        var (exit, _, stderr, inserted) = await Invoke(HttpStatusCode.NotImplemented, """{"error":"not implemented"}""");
+        Assert.Equal(1, exit);
+        Assert.Contains("unexpected status", stderr);
+        Assert.False(inserted);
+    }
+
+    [Fact]
+    public async Task ServiceUnavailable_prints_storage_unavailable_and_does_not_insert()
+    {
+        var (exit, _, stderr, inserted) = await Invoke(
+            HttpStatusCode.ServiceUnavailable,
+            """{"error":"storage unavailable"}""");
+        Assert.Equal(1, exit);
+        Assert.Contains("storage unavailable", stderr);
+        Assert.False(inserted);
+    }
+
+    [Fact]
+    public async Task Ok_inserts_and_prints_id()
+    {
+        InsertPlayableAudio insert = (_, _, stream, download, cover) =>
+        {
+            Assert.Equal("http://127.0.0.1:9000/music/stream/x", stream);
+            Assert.Equal("http://127.0.0.1:9000/music/download/x", download);
+            Assert.Equal("", cover);
+            return Task.FromResult(42);
+        };
+        var json = """{"stream_blob_url":"http://127.0.0.1:9000/music/stream/x","download_blob_url":"http://127.0.0.1:9000/music/download/x","cover_blob_url":""}""";
+        var (exit, stdout, _, inserted) = await Invoke(HttpStatusCode.OK, json, insert: insert);
         Assert.Equal(0, exit);
-        Assert.Contains("not implemented", stdout);
+        Assert.Contains("42", stdout);
+        Assert.True(inserted);
     }
 
     [Fact]
@@ -55,11 +103,12 @@ public class CreatePlayableAudioTests
         var htmlBody = "<html><body><h1>500 Internal Server Error</h1>"
             + string.Concat(Enumerable.Repeat("<p>stack trace line</p>", 50))
             + "</body></html>";
-        var (exit, _, stderr) = await Invoke(HttpStatusCode.InternalServerError, htmlBody);
+        var (exit, _, stderr, inserted) = await Invoke(HttpStatusCode.InternalServerError, htmlBody);
         Assert.Equal(1, exit);
         Assert.Contains("unexpected status", stderr);
         Assert.DoesNotContain("<html>", stderr);
         Assert.DoesNotContain("stack trace line", stderr);
+        Assert.False(inserted);
     }
 
     [Fact]
@@ -80,6 +129,8 @@ public class CreatePlayableAudioTests
             file,
             "Title",
             true,
+            null,
+            NoInsert,
             stdout,
             stderr);
 
@@ -101,6 +152,8 @@ public class CreatePlayableAudioTests
         using var stderr = new StringWriter();
         var file = new FileInfo(Path.GetTempFileName());
         await File.WriteAllTextAsync(file.FullName, "fake-audio");
+        var cover = new FileInfo(Path.GetTempFileName());
+        await File.WriteAllTextAsync(cover.FullName, "fake-img");
 
         await CreatePlayableAudio.RunAsync(
             http,
@@ -109,10 +162,12 @@ public class CreatePlayableAudioTests
             file,
             "Title",
             true,
+            cover,
+            NoInsert,
             stdout,
             stderr);
 
-        Assert.Equal(new[] { "file", "title", "published" }, capturingHandler.CapturedPartNames);
+        Assert.Equal(new[] { "file", "title", "published", "cover" }, capturingHandler.CapturedPartNames);
     }
 
     private sealed class StubHandler : HttpMessageHandler
