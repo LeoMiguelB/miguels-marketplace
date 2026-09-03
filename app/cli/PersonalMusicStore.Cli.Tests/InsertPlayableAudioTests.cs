@@ -15,5 +15,9 @@ public class InsertPlayableAudioTests
         Assert.Contains("@stream", InsertPlayableAudioRow.Sql);
         Assert.Contains("@download", InsertPlayableAudioRow.Sql);
         Assert.Contains("@cover", InsertPlayableAudioRow.Sql);
+        Assert.Contains("bpm", InsertPlayableAudioRow.Sql);
+        Assert.Contains("key", InsertPlayableAudioRow.Sql);
+        Assert.Contains("@bpm", InsertPlayableAudioRow.Sql);
+        Assert.Contains("@key", InsertPlayableAudioRow.Sql);
     }
 }

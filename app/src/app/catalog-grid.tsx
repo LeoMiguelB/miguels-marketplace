@@ -4,6 +4,21 @@ import type { CatalogTrack } from "@/lib/catalog";
 import { getTrackColor } from "@/lib/colors";
 import { useTrackPlayback } from "@/lib/audio-store";
 
+function formatPublishedDate(isoString?: string | null): string | null {
+  if (!isoString) return null;
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return null;
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+  } catch {
+    return null;
+  }
+}
+
 function TrackCard({
   track,
   onPick,
@@ -19,6 +34,8 @@ function TrackCard({
       onPick(track);
     }
   };
+
+  const formattedDate = formatPublishedDate(track.created_at);
 
   return (
     <button
@@ -87,8 +104,34 @@ function TrackCard({
         ) : null}
       </div>
 
-      <div className={`px-2 py-2 text-xs truncate w-full ${isActive ? "text-fg font-bold" : "text-on"}`}>
-        {track.title}
+      <div className="p-2 flex flex-col gap-1 w-full overflow-hidden">
+        <div className={`text-xs truncate font-medium ${isActive ? "text-fg font-bold" : "text-fg"}`}>
+          {track.title}
+        </div>
+
+        <div className="flex items-center justify-between text-[10px] text-on font-mono pt-0.5">
+          <div className="flex items-center gap-1.5 truncate">
+            {track.bpm ? (
+              <span className="border border-line px-1 py-0.2 bg-line/20 rounded-xs text-fg">
+                {track.bpm} <span className="text-on text-[9px]">BPM</span>
+              </span>
+            ) : null}
+            {track.key ? (
+              <span className="border border-line px-1 py-0.2 bg-line/20 rounded-xs text-fg">
+                {track.key}
+              </span>
+            ) : null}
+            {!track.bpm && !track.key ? (
+              <span className="text-on/50">--</span>
+            ) : null}
+          </div>
+
+          {formattedDate ? (
+            <span className="text-on text-[10px] shrink-0 ml-1">
+              {formattedDate}
+            </span>
+          ) : null}
+        </div>
       </div>
     </button>
   );

@@ -5,7 +5,13 @@ namespace PersonalMusicStore.Cli;
 
 public static class UpdatePlayableAudio
 {
-    public static async Task<int> RunAsync(string databaseUrl, int id, string? title, bool? published)
+    public static async Task<int> RunAsync(
+        string databaseUrl,
+        int id,
+        string? title,
+        bool? published,
+        int? bpm = null,
+        string? key = null)
     {
         await using var conn = new NpgsqlConnection(InsertPlayableAudioRow.ToNpgsqlConnectionString(databaseUrl));
         await conn.OpenAsync();
@@ -13,6 +19,8 @@ public static class UpdatePlayableAudio
         var updates = new List<string>();
         if (title != null) updates.Add("title = @title");
         if (published != null) updates.Add("published = @published");
+        if (bpm.HasValue) updates.Add("bpm = @bpm");
+        if (key != null) updates.Add("key = @key");
         
         if (updates.Count == 0)
         {
@@ -27,6 +35,8 @@ public static class UpdatePlayableAudio
         cmd.Parameters.AddWithValue("id", id);
         if (title != null) cmd.Parameters.AddWithValue("title", title);
         if (published != null) cmd.Parameters.AddWithValue("published", published.Value);
+        if (bpm.HasValue) cmd.Parameters.AddWithValue("bpm", bpm.Value);
+        if (key != null) cmd.Parameters.AddWithValue("key", key);
         
         var rows = await cmd.ExecuteNonQueryAsync();
         if (rows == 0)

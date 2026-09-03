@@ -9,23 +9,25 @@ namespace PersonalMusicStore.Cli.Tests;
 public class CreatePlayableAudioTests
 {
     private static InsertPlayableAudio NoInsert =>
-        (_, _, _, _, _) => throw new InvalidOperationException("insert should not run");
+        (_, _, _, _, _, _, _) => throw new InvalidOperationException("insert should not run");
 
     private static async Task<(int Exit, string Stdout, string Stderr, bool Inserted)> Invoke(
         HttpStatusCode status,
         string json,
         FileInfo? cover = null,
-        InsertPlayableAudio? insert = null)
+        InsertPlayableAudio? insert = null,
+        int? bpm = null,
+        string? key = null)
     {
         var inserted = false;
-        InsertPlayableAudio wrapped = async (t, p, s, d, c) =>
+        InsertPlayableAudio wrapped = async (t, p, s, d, c, b, k) =>
         {
             inserted = true;
             if (insert is null)
             {
                 throw new InvalidOperationException("insert should not run");
             }
-            return await insert(t, p, s, d, c);
+            return await insert(t, p, s, d, c, b, k);
         };
 
         var handler = new StubHandler(new HttpResponseMessage(status)
@@ -47,7 +49,9 @@ public class CreatePlayableAudioTests
             cover,
             wrapped,
             stdout,
-            stderr);
+            stderr,
+            bpm,
+            key);
         return (exit, stdout.ToString(), stderr.ToString(), inserted);
     }
 
@@ -83,17 +87,35 @@ public class CreatePlayableAudioTests
     [Fact]
     public async Task Ok_inserts_and_prints_id()
     {
-        InsertPlayableAudio insert = (_, _, stream, download, cover) =>
+        InsertPlayableAudio insert = (_, _, stream, download, cover, bpm, key) =>
         {
             Assert.Equal("http://127.0.0.1:9000/music/stream/x", stream);
             Assert.Equal("http://127.0.0.1:9000/music/download/x", download);
             Assert.Equal("", cover);
+            Assert.Null(bpm);
+            Assert.Null(key);
             return Task.FromResult(42);
         };
         var json = """{"stream_blob_url":"http://127.0.0.1:9000/music/stream/x","download_blob_url":"http://127.0.0.1:9000/music/download/x","cover_blob_url":""}""";
         var (exit, stdout, _, inserted) = await Invoke(HttpStatusCode.OK, json, insert: insert);
         Assert.Equal(0, exit);
         Assert.Contains("42", stdout);
+        Assert.True(inserted);
+    }
+
+    [Fact]
+    public async Task Ok_inserts_with_bpm_and_key()
+    {
+        InsertPlayableAudio insert = (_, _, stream, download, cover, bpm, key) =>
+        {
+            Assert.Equal(140, bpm);
+            Assert.Equal("C min", key);
+            return Task.FromResult(99);
+        };
+        var json = """{"stream_blob_url":"http://127.0.0.1:9000/music/stream/x","download_blob_url":"http://127.0.0.1:9000/music/download/x","cover_blob_url":""}""";
+        var (exit, stdout, _, inserted) = await Invoke(HttpStatusCode.OK, json, insert: insert, bpm: 140, key: "C min");
+        Assert.Equal(0, exit);
+        Assert.Contains("99", stdout);
         Assert.True(inserted);
     }
 

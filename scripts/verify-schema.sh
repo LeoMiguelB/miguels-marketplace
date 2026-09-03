@@ -18,13 +18,25 @@ if [[ "$col" != "cover_blob_url" ]]; then
   exit 1
 fi
 
+bpm_col="$(psql "$DB_URL" -Atc "select column_name from information_schema.columns where table_schema='public' and table_name='playable_audio' and column_name='bpm'")"
+if [[ "$bpm_col" != "bpm" ]]; then
+  echo "bpm missing on playable_audio"
+  exit 1
+fi
+
+key_col="$(psql "$DB_URL" -Atc "select column_name from information_schema.columns where table_schema='public' and table_name='playable_audio' and column_name='key'")"
+if [[ "$key_col" != "key" ]]; then
+  echo "key missing on playable_audio"
+  exit 1
+fi
+
 check_name="$(psql "$DB_URL" -Atc "select conname from pg_constraint where conname = 'playable_audio_published_cover_check'")"
 if [[ -n "$check_name" ]]; then
   echo "playable_audio_published_cover_check still present"
   exit 1
 fi
 
-psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into playable_audio (title, published, stream_blob_url, download_blob_url, cover_blob_url) values ('verify-empty-cover', true, 's', 'd', '');" >/dev/null
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into playable_audio (title, published, stream_blob_url, download_blob_url, cover_blob_url, bpm, key) values ('verify-empty-cover', true, 's', 'd', '', 140, 'C min');" >/dev/null
 psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from playable_audio where title = 'verify-empty-cover';" >/dev/null
 
 echo "Schema OK"

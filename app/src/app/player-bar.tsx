@@ -195,7 +195,12 @@ export function PlayerBar({
 
         <div className="min-w-0 flex-1">
           <div className="truncate text-xs font-bold leading-tight">{track.title}</div>
-          <div className="truncate text-[10px] text-on mt-0.5">miguelbbeats.store</div>
+          <div className="truncate text-[10px] text-on mt-0.5 flex items-center gap-1.5">
+            {track.bpm ? <span>{track.bpm} BPM</span> : null}
+            {track.bpm && track.key ? <span>•</span> : null}
+            {track.key ? <span>{track.key}</span> : null}
+            {!track.bpm && !track.key ? <span>miguelbbeats.store</span> : null}
+          </div>
         </div>
       </div>
 

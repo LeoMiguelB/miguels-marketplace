@@ -8,7 +8,9 @@ public delegate Task<int> InsertPlayableAudio(
     bool published,
     string streamBlobUrl,
     string downloadBlobUrl,
-    string coverBlobUrl);
+    string coverBlobUrl,
+    int? bpm,
+    string? key);
 
 public static class CreatePlayableAudio
 {
@@ -22,7 +24,9 @@ public static class CreatePlayableAudio
         FileInfo? cover,
         InsertPlayableAudio insert,
         TextWriter stdout,
-        TextWriter stderr)
+        TextWriter stderr,
+        int? bpm = null,
+        string? key = null)
     {
         using var content = new MultipartFormDataContent();
         AddFilePart(content, "file", file);
@@ -94,7 +98,9 @@ public static class CreatePlayableAudio
                     published,
                     urls.stream_blob_url,
                     urls.download_blob_url,
-                    urls.cover_blob_url ?? "");
+                    urls.cover_blob_url ?? "",
+                    bpm,
+                    key);
                 await stdout.WriteLineAsync(id.ToString());
                 return 0;
             }

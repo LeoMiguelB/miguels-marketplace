@@ -28,8 +28,32 @@ describe("toCatalogTrack", () => {
       title: "Tape Loop",
       stream_blob_url: "http://127.0.0.1:9000/music/stream/1",
       cover_blob_url: "http://127.0.0.1:9000/music/cover/1",
+      bpm: null,
+      key: null,
+      created_at: null,
     });
     expect(JSON.stringify(track)).not.toContain("download_blob_url");
+  });
+
+  test("correctly maps bpm, key, and created_at", () => {
+    const track = toCatalogTrack({
+      id: 1,
+      title: "Melodic Trap",
+      stream_blob_url: "http://127.0.0.1:9000/music/stream/1",
+      cover_blob_url: "http://127.0.0.1:9000/music/cover/1",
+      bpm: 140,
+      key: "F# min",
+      created_at: new Date("2026-09-03T12:00:00Z"),
+    });
+    expect(track).toEqual({
+      id: 1,
+      title: "Melodic Trap",
+      stream_blob_url: "http://127.0.0.1:9000/music/stream/1",
+      cover_blob_url: "http://127.0.0.1:9000/music/cover/1",
+      bpm: 140,
+      key: "F# min",
+      created_at: "2026-09-03T12:00:00.000Z",
+    });
   });
 });
 
@@ -48,6 +72,9 @@ describe("loadCatalog", () => {
         title: "Night Kit",
         stream_blob_url: "s",
         cover_blob_url: "c",
+        bpm: 128,
+        key: "C min",
+        created_at: "2026-09-01T00:00:00Z",
       },
     ]);
     expect(result).toEqual({
@@ -58,6 +85,9 @@ describe("loadCatalog", () => {
           title: "Night Kit",
           stream_blob_url: "s",
           cover_blob_url: "c",
+          bpm: 128,
+          key: "C min",
+          created_at: "2026-09-01T00:00:00Z",
         },
       ],
     });

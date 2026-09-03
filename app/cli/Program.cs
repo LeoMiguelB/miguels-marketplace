@@ -26,12 +26,24 @@ var coverOption = new Option<FileInfo?>("--cover")
     Description = "Optional local cover image",
     Required = false,
 };
+var bpmOption = new Option<int?>("--bpm")
+{
+    Description = "Optional BPM of the audio",
+    Required = false,
+};
+var keyOption = new Option<string?>("--key")
+{
+    Description = "Optional musical key of the audio (e.g. 'C min', 'F# Maj')",
+    Required = false,
+};
 
 var create = new Command("create", "Create a playable audio row (upload then insert)");
 create.Options.Add(fileOption);
 create.Options.Add(titleOption);
 create.Options.Add(publishedOption);
 create.Options.Add(coverOption);
+create.Options.Add(bpmOption);
+create.Options.Add(keyOption);
 create.SetAction(async (parseResult, ct) =>
 {
     var publishedRaw = parseResult.GetValue(publishedOption);
@@ -55,6 +67,9 @@ create.SetAction(async (parseResult, ct) =>
         return 1;
     }
 
+    var bpm = parseResult.GetValue(bpmOption);
+    var key = parseResult.GetValue(keyOption);
+
     using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
     return await CreatePlayableAudio.RunAsync(
         http,
@@ -64,10 +79,12 @@ create.SetAction(async (parseResult, ct) =>
         parseResult.GetValue(titleOption)!,
         publishedRaw == "true",
         parseResult.GetValue(coverOption),
-        (title, published, stream, download, cover) =>
-            InsertPlayableAudioRow.RunAsync(databaseUrl, title, published, stream, download, cover),
+        (title, published, stream, download, cover, b, k) =>
+            InsertPlayableAudioRow.RunAsync(databaseUrl, title, published, stream, download, cover, b, k),
         Console.Out,
-        Console.Error);
+        Console.Error,
+        bpm,
+        key);
 });
 
 root.Subcommands.Add(create);
@@ -89,9 +106,13 @@ var updateCommand = new Command("update", "Update playable audio");
 var updateIdOption = new Option<int>("--id") { Required = true, Description = "ID of the audio to update" };
 var updateTitleOption = new Option<string?>("--title") { Description = "New title for the audio" };
 var updatePublishedOption = new Option<bool?>("--published") { Description = "New published status (true/false)" };
+var updateBpmOption = new Option<int?>("--bpm") { Description = "New BPM of the audio" };
+var updateKeyOption = new Option<string?>("--key") { Description = "New musical key of the audio" };
 updateCommand.Options.Add(updateIdOption);
 updateCommand.Options.Add(updateTitleOption);
 updateCommand.Options.Add(updatePublishedOption);
+updateCommand.Options.Add(updateBpmOption);
+updateCommand.Options.Add(updateKeyOption);
 updateCommand.SetAction(async (parseResult, ct) =>
 {
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
@@ -103,7 +124,9 @@ updateCommand.SetAction(async (parseResult, ct) =>
     var id = parseResult.GetValue(updateIdOption);
     var title = parseResult.GetValue(updateTitleOption);
     var published = parseResult.GetValue(updatePublishedOption);
-    return await UpdatePlayableAudio.RunAsync(databaseUrl, id, title, published);
+    var bpm = parseResult.GetValue(updateBpmOption);
+    var key = parseResult.GetValue(updateKeyOption);
+    return await UpdatePlayableAudio.RunAsync(databaseUrl, id, title, published, bpm, key);
 });
 root.Subcommands.Add(updateCommand);
 

@@ -6,8 +6,8 @@ public static class InsertPlayableAudioRow
 {
     public const string Sql =
         """
-        insert into playable_audio (title, published, stream_blob_url, download_blob_url, cover_blob_url)
-        values (@title, @published, @stream, @download, @cover)
+        insert into playable_audio (title, published, stream_blob_url, download_blob_url, cover_blob_url, bpm, key)
+        values (@title, @published, @stream, @download, @cover, @bpm, @key)
         returning id
         """;
 
@@ -17,7 +17,9 @@ public static class InsertPlayableAudioRow
         bool published,
         string streamBlobUrl,
         string downloadBlobUrl,
-        string coverBlobUrl)
+        string coverBlobUrl,
+        int? bpm = null,
+        string? key = null)
     {
         await using var conn = new NpgsqlConnection(ToNpgsqlConnectionString(databaseUrl));
         await conn.OpenAsync();
@@ -27,6 +29,8 @@ public static class InsertPlayableAudioRow
         cmd.Parameters.AddWithValue("stream", streamBlobUrl);
         cmd.Parameters.AddWithValue("download", downloadBlobUrl);
         cmd.Parameters.AddWithValue("cover", coverBlobUrl);
+        cmd.Parameters.AddWithValue("bpm", bpm.HasValue ? bpm.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("key", !string.IsNullOrWhiteSpace(key) ? key : DBNull.Value);
         var result = await cmd.ExecuteScalarAsync();
         return Convert.ToInt32(result);
     }
