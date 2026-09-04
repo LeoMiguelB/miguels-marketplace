@@ -51,18 +51,45 @@ public static class DeletePlayableAudio
         return 0;
     }
 
+    public static (string bucket, string key) ResolveBucketAndKey(string url, string defaultBucket)
+    {
+        var uri = new Uri(url);
+        var path = uri.AbsolutePath.TrimStart('/');
+        var targetBucket = defaultBucket;
+        var key = path;
+
+        // Handle path-style URLs: /<bucket-name>/<key>
+        if (!string.IsNullOrEmpty(defaultBucket) && path.StartsWith($"{defaultBucket}/"))
+        {
+            key = path.Substring(defaultBucket.Length + 1);
+        }
+        else if (string.IsNullOrEmpty(defaultBucket))
+        {
+            var slashIndex = path.IndexOf('/');
+            if (slashIndex > 0)
+            {
+                targetBucket = path.Substring(0, slashIndex);
+                key = path.Substring(slashIndex + 1);
+            }
+        }
+
+        return (targetBucket, key);
+    }
+
     private static async Task DeleteFromS3(string? streamUrl, string? downloadUrl, string? coverUrl)
     {
         var endpoint = Environment.GetEnvironmentVariable("S3_ENDPOINT");
         var accessKey = Environment.GetEnvironmentVariable("S3_ACCESS_KEY");
         var secretKey = Environment.GetEnvironmentVariable("S3_SECRET_KEY");
-        var bucket = Environment.GetEnvironmentVariable("S3_BUCKET");
+        var legacyBucket = Environment.GetEnvironmentVariable("S3_BUCKET");
+        var publicBucket = Environment.GetEnvironmentVariable("S3_PUBLIC_BUCKET") ?? legacyBucket;
+        var privateBucket = Environment.GetEnvironmentVariable("S3_PRIVATE_BUCKET") ?? legacyBucket;
         var forcePathStyleStr = Environment.GetEnvironmentVariable("S3_FORCE_PATH_STYLE");
         var forcePathStyle = forcePathStyleStr == "true" || forcePathStyleStr == "1";
-        
-        if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey) || string.IsNullOrEmpty(bucket))
+
+        if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
         {
-            await Console.Error.WriteLineAsync("Missing S3 credentials in environment variables, skipping MinIO deletion.");
+            await Console.Error.WriteLineAsync("Missing S3 credentials in environment variables, skipping S3 deletion.");
             return;
         }
 
@@ -73,32 +100,32 @@ public static class DeletePlayableAudio
         };
         using var client = new AmazonS3Client(accessKey, secretKey, config);
 
-        var urls = new[] { streamUrl, downloadUrl, coverUrl };
-        foreach (var url in urls)
+        var targets = new (string? url, string defaultBucket)[]
+        {
+            (streamUrl, publicBucket ?? ""),
+            (downloadUrl, privateBucket ?? ""),
+            (coverUrl, publicBucket ?? "")
+        };
+
+        foreach (var (url, defaultBucket) in targets)
         {
             if (string.IsNullOrEmpty(url)) continue;
-            
+
             try
             {
-                var uri = new Uri(url);
-                var path = uri.AbsolutePath.TrimStart('/');
-                var prefix = $"{bucket}/";
-                string key;
-                if (path.StartsWith(prefix))
+                var (targetBucket, key) = ResolveBucketAndKey(url, defaultBucket);
+                if (string.IsNullOrEmpty(targetBucket))
                 {
-                    key = path.Substring(prefix.Length);
-                }
-                else
-                {
-                    key = path;
+                    await Console.Error.WriteLineAsync($"Could not determine bucket for {url}");
+                    continue;
                 }
 
                 await client.DeleteObjectAsync(new DeleteObjectRequest
                 {
-                    BucketName = bucket,
+                    BucketName = targetBucket,
                     Key = key
                 });
-                Console.WriteLine($"Deleted {key} from S3");
+                Console.WriteLine($"Deleted {key} from bucket {targetBucket}");
             }
             catch (Exception ex)
             {

@@ -100,4 +100,36 @@ describe("loadCatalog", () => {
       }),
     ).resolves.toEqual({ ok: false, error: "CATALOG_UNAVAILABLE" });
   });
+
+  test("applies signUrlFn to stream and cover URLs when provided", async () => {
+    const mockSign = async (url: string) => `signed:${url}`;
+    const result = await loadCatalog(
+      async () => [
+        {
+          id: 1,
+          title: "Track 1",
+          stream_blob_url: "http://storage/track1.mp3",
+          cover_blob_url: "http://storage/cover1.jpg",
+          bpm: 120,
+          key: "Am",
+          created_at: "2026-09-01T00:00:00Z",
+        },
+      ],
+      mockSign,
+    );
+    expect(result).toEqual({
+      ok: true,
+      tracks: [
+        {
+          id: 1,
+          title: "Track 1",
+          stream_blob_url: "signed:http://storage/track1.mp3",
+          cover_blob_url: "signed:http://storage/cover1.jpg",
+          bpm: 120,
+          key: "Am",
+          created_at: "2026-09-01T00:00:00Z",
+        },
+      ],
+    });
+  });
 });

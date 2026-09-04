@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { s3, bucket } from "@/lib/s3";
+import { s3, privateBucket } from "@/lib/s3";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -43,9 +43,9 @@ export async function POST(req: NextRequest) {
         updated_at = now()
     `;
 
-    // Fetch download_blob_url
+    // Fetch title and download_blob_url
     const [audio] = await sql`
-      SELECT download_blob_url FROM playable_audio WHERE id = ${trackId}
+      SELECT title, download_blob_url FROM playable_audio WHERE id = ${trackId}
     `;
 
     if (!audio || !audio.download_blob_url) {
@@ -55,15 +55,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const urlObj = new URL(audio.download_blob_url);
-    const pathname = urlObj.pathname;
+    // Extract clean filename: sanitize track title
+    const cleanTitle = (audio.title || "sample").trim().replace(/[^a-zA-Z0-9_-]/g, "_") || "sample";
+    const match = audio.download_blob_url.match(/\.([a-zA-Z0-9]+)$/);
+    const ext = match ? `.${match[1]}` : ".wav";
+    const filename = `${cleanTitle}${ext}`;
+
     // URL format is /<bucket>/download/<id> if path style, or /download/<id> if virtual host.
     // Safest way is to split by /download/
     const key = "download/" + audio.download_blob_url.split("/download/")[1];
 
     const command = new GetObjectCommand({
-      Bucket: bucket,
+      Bucket: privateBucket,
       Key: key,
+      ResponseContentDisposition: `attachment; filename="${filename}"`,
     });
 
     const url = await getSignedUrl(s3, command, { expiresIn: 3600 });

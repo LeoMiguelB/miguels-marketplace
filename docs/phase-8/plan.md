@@ -1,0 +1,1 @@
+We are now ready to introduce a real live s3 storage. I am currently using backblaze as stated in the initial proposal. We want to setup the infrastructure to set that up. I still think however, we should still keep/maintain our usage around minio as it is helpfulf for local dev.

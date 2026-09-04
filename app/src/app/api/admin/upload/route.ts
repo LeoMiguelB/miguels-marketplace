@@ -1,7 +1,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { adminSecretOk } from "@/lib/admin-auth";
 import { handleAdminUpload } from "@/lib/admin-upload";
-import { bucket, s3 } from "@/lib/s3";
+import { publicBucket, privateBucket, publicUrlBase, s3 } from "@/lib/s3";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -14,11 +14,13 @@ export async function POST(request: Request): Promise<Response> {
   return handleAdminUpload(request, {
     newId: () => crypto.randomUUID(),
     endpoint: process.env.S3_ENDPOINT ?? "",
-    bucket,
-    put: async (key, body, contentType) => {
+    publicBucket,
+    privateBucket,
+    publicUrlBase,
+    put: async (targetBucket, key, body, contentType) => {
       await s3.send(
         new PutObjectCommand({
-          Bucket: bucket,
+          Bucket: targetBucket,
           Key: key,
           Body: body,
           ContentType: contentType,

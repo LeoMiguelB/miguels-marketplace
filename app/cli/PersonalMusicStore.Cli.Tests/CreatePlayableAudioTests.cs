@@ -223,6 +223,84 @@ public class CreatePlayableAudioTests
         }
     }
 
+    [Fact]
+    public async Task Request_sets_correct_media_types_for_audio_and_cover()
+    {
+        var capturingHandler = new CapturingHandler(new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        {
+            Content = new StringContent("""{"error":"unauthorized"}""", Encoding.UTF8, "application/json"),
+        });
+        using var http = new HttpClient(capturingHandler);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var tempWav = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.wav");
+        await File.WriteAllTextAsync(tempWav, "fake-wav");
+        var tempPng = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
+        await File.WriteAllTextAsync(tempPng, "fake-png");
+
+        try
+        {
+            await CreatePlayableAudio.RunAsync(
+                http,
+                "http://127.0.0.1:3000/api/admin/upload",
+                "test-secret",
+                new FileInfo(tempWav),
+                "Title",
+                true,
+                new FileInfo(tempPng),
+                NoInsert,
+                stdout,
+                stderr);
+
+            Assert.Equal("audio/wav", capturingHandler.CapturedContentTypes["file"]);
+            Assert.Equal("image/png", capturingHandler.CapturedContentTypes["cover"]);
+        }
+        finally
+        {
+            if (File.Exists(tempWav)) File.Delete(tempWav);
+            if (File.Exists(tempPng)) File.Delete(tempPng);
+        }
+    }
+
+    [Fact]
+    public async Task Request_sets_correct_media_types_for_mp3_and_jpeg()
+    {
+        var capturingHandler = new CapturingHandler(new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        {
+            Content = new StringContent("""{"error":"unauthorized"}""", Encoding.UTF8, "application/json"),
+        });
+        using var http = new HttpClient(capturingHandler);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var tempMp3 = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.mp3");
+        await File.WriteAllTextAsync(tempMp3, "fake-mp3");
+        var tempJpg = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.jpg");
+        await File.WriteAllTextAsync(tempJpg, "fake-jpg");
+
+        try
+        {
+            await CreatePlayableAudio.RunAsync(
+                http,
+                "http://127.0.0.1:3000/api/admin/upload",
+                "test-secret",
+                new FileInfo(tempMp3),
+                "Title",
+                true,
+                new FileInfo(tempJpg),
+                NoInsert,
+                stdout,
+                stderr);
+
+            Assert.Equal("audio/mpeg", capturingHandler.CapturedContentTypes["file"]);
+            Assert.Equal("image/jpeg", capturingHandler.CapturedContentTypes["cover"]);
+        }
+        finally
+        {
+            if (File.Exists(tempMp3)) File.Delete(tempMp3);
+            if (File.Exists(tempJpg)) File.Delete(tempJpg);
+        }
+    }
+
     private sealed class CapturingHandler : HttpMessageHandler
     {
         private readonly HttpResponseMessage _response;
@@ -230,14 +308,22 @@ public class CreatePlayableAudioTests
         public CapturingHandler(HttpResponseMessage response) => _response = response;
 
         public List<string?> CapturedPartNames { get; } = new();
+        public Dictionary<string, string?> CapturedContentTypes { get; } = new();
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             var multipart = Assert.IsType<MultipartFormDataContent>(request.Content);
-            CapturedPartNames.AddRange(
-                multipart.Select(part => part.Headers.ContentDisposition?.Name?.Trim('"')));
+            foreach (var part in multipart)
+            {
+                var name = part.Headers.ContentDisposition?.Name?.Trim('"');
+                CapturedPartNames.Add(name);
+                if (name != null)
+                {
+                    CapturedContentTypes[name] = part.Headers.ContentType?.MediaType;
+                }
+            }
             return Task.FromResult(_response);
         }
     }

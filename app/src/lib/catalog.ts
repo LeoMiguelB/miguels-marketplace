@@ -49,10 +49,30 @@ export function toCatalogTrack(
 
 export async function loadCatalog(
   fetchRows: () => Promise<PublishedTrackRow[]>,
+  signUrlFn?: (url: string) => Promise<string>,
 ): Promise<CatalogResult> {
   try {
     const rows = await fetchRows();
-    return { ok: true, tracks: rows.map((row) => toCatalogTrack(row)) };
+    const tracks = await Promise.all(
+      rows.map(async (row) => {
+        const track = toCatalogTrack(row);
+        if (signUrlFn) {
+          const [signedStream, signedCover] = await Promise.all([
+            signUrlFn(track.stream_blob_url),
+            track.cover_blob_url
+              ? signUrlFn(track.cover_blob_url)
+              : Promise.resolve(""),
+          ]);
+          return {
+            ...track,
+            stream_blob_url: signedStream,
+            cover_blob_url: signedCover,
+          };
+        }
+        return track;
+      }),
+    );
+    return { ok: true, tracks };
   } catch {
     return { ok: false, error: "CATALOG_UNAVAILABLE" };
   }

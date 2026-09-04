@@ -32,11 +32,47 @@ export function parseUploadForm(form: FormData): ParsedUpload {
 
 export function publicObjectUrl(
   endpoint: string,
-  bucket: string,
+  targetBucket: string,
   key: string,
+  publicBase?: string,
 ): string {
-  const base = endpoint.replace(/\/$/, "");
-  return `${base}/${bucket}/${key}`;
+  if (publicBase) {
+    return `${publicBase.replace(/\/$/, "")}/${key}`;
+  }
+  const normalized = !/^https?:\/\//i.test(endpoint) && endpoint
+    ? `https://${endpoint}`
+    : endpoint;
+  const base = normalized.replace(/\/$/, "");
+  return `${base}/${targetBucket}/${key}`;
+}
+
+export function resolveAudioContentType(
+  fileName: string,
+  providedType?: string,
+): string {
+  if (
+    providedType &&
+    providedType !== "application/octet-stream" &&
+    providedType.trim() !== ""
+  ) {
+    return providedType;
+  }
+  const ext = fileName.slice(fileName.lastIndexOf(".")).toLowerCase();
+  switch (ext) {
+    case ".mp3":
+      return "audio/mpeg";
+    case ".wav":
+      return "audio/wav";
+    case ".m4a":
+    case ".mp4":
+      return "audio/mp4";
+    case ".ogg":
+      return "audio/ogg";
+    case ".flac":
+      return "audio/flac";
+    default:
+      return "application/octet-stream";
+  }
 }
 
 export function blobKeys(id: string): {
@@ -52,6 +88,13 @@ export function blobKeys(id: string): {
 }
 
 export type PutObjectFn = (
+  key: string,
+  body: Uint8Array,
+  contentType: string,
+) => Promise<void>;
+
+export type PutObjectToBucketFn = (
+  targetBucket: string,
   key: string,
   body: Uint8Array,
   contentType: string,
@@ -87,14 +130,44 @@ export async function putPlayableBlobs(
   };
 }
 
+export async function putPlayableBlobsToBuckets(
+  put: PutObjectToBucketFn,
+  id: string,
+  audio: { body: Uint8Array; contentType: string },
+  cover: { body: Uint8Array; contentType: string } | null,
+  buckets: { publicBucket: string; privateBucket: string },
+): Promise<PutPlayableResult> {
+  const keys = blobKeys(id);
+  // Stream goes to public bucket for browser streaming
+  await put(buckets.publicBucket, keys.streamKey, audio.body, audio.contentType);
+  // Download master goes to private bucket for gated downloads
+  await put(buckets.privateBucket, keys.downloadKey, audio.body, audio.contentType);
+
+  if (cover) {
+    // Cover artwork goes to public bucket
+    await put(buckets.publicBucket, keys.coverKey, cover.body, cover.contentType);
+  }
+
+  return {
+    streamKey: keys.streamKey,
+    downloadKey: keys.downloadKey,
+    coverKey: cover ? keys.coverKey : null,
+  };
+}
+
+export type AdminUploadDeps = {
+  put: PutObjectToBucketFn | PutObjectFn;
+  newId: () => string;
+  endpoint: string;
+  bucket?: string;
+  publicBucket?: string;
+  privateBucket?: string;
+  publicUrlBase?: string;
+};
+
 export async function handleAdminUpload(
   request: Request,
-  deps: {
-    put: PutObjectFn;
-    newId: () => string;
-    endpoint: string;
-    bucket: string;
-  },
+  deps: AdminUploadDeps,
 ): Promise<Response> {
   let form: FormData;
   try {
@@ -110,13 +183,30 @@ export async function handleAdminUpload(
   const coverBody = parsed.cover
     ? new Uint8Array(await parsed.cover.arrayBuffer())
     : null;
+
+  const publicBucket = deps.publicBucket ?? deps.bucket ?? "";
+  const privateBucket = deps.privateBucket ?? deps.bucket ?? "";
+
+  const audioContentType = resolveAudioContentType(
+    parsed.audio.name,
+    parsed.audio.type,
+  );
+
+  const isDualBucketPut =
+    deps.put.length >= 4 || Boolean(deps.publicBucket && deps.put.length !== 3);
+  const putToBucket: PutObjectToBucketFn = isDualBucketPut
+    ? (deps.put as PutObjectToBucketFn)
+    : async (_targetBucket, key, body, contentType) => {
+        await (deps.put as PutObjectFn)(key, body, contentType);
+      };
+
   try {
-    const keys = await putPlayableBlobs(
-      deps.put,
+    const keys = await putPlayableBlobsToBuckets(
+      putToBucket,
       deps.newId(),
       {
         body: audioBody,
-        contentType: parsed.audio.type || "application/octet-stream",
+        contentType: audioContentType,
       },
       coverBody && parsed.cover
         ? {
@@ -124,20 +214,28 @@ export async function handleAdminUpload(
             contentType: parsed.cover.type || "application/octet-stream",
           }
         : null,
+      { publicBucket, privateBucket },
     );
+
     return Response.json({
       stream_blob_url: publicObjectUrl(
         deps.endpoint,
-        deps.bucket,
+        publicBucket,
         keys.streamKey,
+        deps.publicUrlBase,
       ),
       download_blob_url: publicObjectUrl(
         deps.endpoint,
-        deps.bucket,
+        privateBucket,
         keys.downloadKey,
       ),
       cover_blob_url: keys.coverKey
-        ? publicObjectUrl(deps.endpoint, deps.bucket, keys.coverKey)
+        ? publicObjectUrl(
+            deps.endpoint,
+            publicBucket,
+            keys.coverKey,
+            deps.publicUrlBase,
+          )
         : "",
     });
   } catch {
