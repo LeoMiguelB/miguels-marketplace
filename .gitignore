@@ -26,3 +26,4 @@ supabase/.branches/
 # Caches and internal tools
 .prompt-cache
 .superpowers/
+.vercel

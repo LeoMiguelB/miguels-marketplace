@@ -3,6 +3,8 @@ import { signMediaUrl } from "@/lib/s3";
 import { sql } from "@/lib/db";
 import { Store } from "./store";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const catalog = await loadCatalog(
     () => fetchPublishedTrackRows(sql),
