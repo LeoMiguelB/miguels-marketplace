@@ -36,9 +36,15 @@ var keyOption = new Option<string?>("--key")
     Description = "Optional musical key of the audio (e.g. 'C min', 'F# Maj')",
     Required = false,
 };
+var streamOption = new Option<FileInfo?>("--stream", "-s")
+{
+    Description = "Optional local streaming preview audio file (e.g. .mp3)",
+    Required = false,
+};
 
 var create = new Command("create", "Create a playable audio row (upload then insert)");
 create.Options.Add(fileOption);
+create.Options.Add(streamOption);
 create.Options.Add(titleOption);
 create.Options.Add(publishedOption);
 create.Options.Add(coverOption);
@@ -69,6 +75,7 @@ create.SetAction(async (parseResult, ct) =>
 
     var bpm = parseResult.GetValue(bpmOption);
     var key = parseResult.GetValue(keyOption);
+    var stream = parseResult.GetValue(streamOption);
 
     using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
     return await CreatePlayableAudio.RunAsync(
@@ -79,12 +86,13 @@ create.SetAction(async (parseResult, ct) =>
         parseResult.GetValue(titleOption)!,
         publishedRaw == "true",
         parseResult.GetValue(coverOption),
-        (title, published, stream, download, cover, b, k) =>
-            InsertPlayableAudioRow.RunAsync(databaseUrl, title, published, stream, download, cover, b, k),
+        (title, published, streamUrl, downloadUrl, coverUrl, b, k) =>
+            InsertPlayableAudioRow.RunAsync(databaseUrl, title, published, streamUrl, downloadUrl, coverUrl, b, k),
         Console.Out,
         Console.Error,
         bpm,
-        key);
+        key,
+        stream);
 });
 
 root.Subcommands.Add(create);

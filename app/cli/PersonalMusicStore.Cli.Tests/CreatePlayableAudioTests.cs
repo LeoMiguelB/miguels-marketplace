@@ -17,7 +17,8 @@ public class CreatePlayableAudioTests
         FileInfo? cover = null,
         InsertPlayableAudio? insert = null,
         int? bpm = null,
-        string? key = null)
+        string? key = null,
+        FileInfo? stream = null)
     {
         var inserted = false;
         InsertPlayableAudio wrapped = async (t, p, s, d, c, b, k) =>
@@ -51,7 +52,8 @@ public class CreatePlayableAudioTests
             stdout,
             stderr,
             bpm,
-            key);
+            key,
+            stream);
         return (exit, stdout.ToString(), stderr.ToString(), inserted);
     }
 
@@ -298,6 +300,48 @@ public class CreatePlayableAudioTests
         {
             if (File.Exists(tempMp3)) File.Delete(tempMp3);
             if (File.Exists(tempJpg)) File.Delete(tempJpg);
+        }
+    }
+
+    [Fact]
+    public async Task Upload_with_stream_and_wav_includes_both_audio_parts()
+    {
+        var capturingHandler = new CapturingHandler(new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        {
+            Content = new StringContent("""{"error":"unauthorized"}""", Encoding.UTF8, "application/json"),
+        });
+        using var http = new HttpClient(capturingHandler);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var tempWav = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.wav");
+        await File.WriteAllTextAsync(tempWav, "fake-wav-master");
+        var tempMp3 = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.mp3");
+        await File.WriteAllTextAsync(tempMp3, "fake-mp3-preview");
+
+        try
+        {
+            await CreatePlayableAudio.RunAsync(
+                http,
+                "http://127.0.0.1:3000/api/admin/upload",
+                "test-secret",
+                new FileInfo(tempWav),
+                "Title",
+                true,
+                null,
+                NoInsert,
+                stdout,
+                stderr,
+                stream: new FileInfo(tempMp3));
+
+            Assert.Contains("file", capturingHandler.CapturedPartNames);
+            Assert.Contains("stream", capturingHandler.CapturedPartNames);
+            Assert.Equal("audio/wav", capturingHandler.CapturedContentTypes["file"]);
+            Assert.Equal("audio/mpeg", capturingHandler.CapturedContentTypes["stream"]);
+        }
+        finally
+        {
+            if (File.Exists(tempWav)) File.Delete(tempWav);
+            if (File.Exists(tempMp3)) File.Delete(tempMp3);
         }
     }
 

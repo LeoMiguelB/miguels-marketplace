@@ -26,10 +26,15 @@ public static class CreatePlayableAudio
         TextWriter stdout,
         TextWriter stderr,
         int? bpm = null,
-        string? key = null)
+        string? key = null,
+        FileInfo? stream = null)
     {
         using var content = new MultipartFormDataContent();
         AddFilePart(content, "file", file);
+        if (stream is not null)
+        {
+            AddFilePart(content, "stream", stream);
+        }
         AddTextPart(content, "title", title);
         AddTextPart(content, "published", published ? "true" : "false");
         if (cover is not null)
@@ -139,9 +144,13 @@ public static class CreatePlayableAudio
         {
             ".wav" => "audio/wav",
             ".mp3" => "audio/mpeg",
+            ".m4a" => "audio/mp4",
+            ".ogg" => "audio/ogg",
+            ".flac" => "audio/flac",
             ".png" => "image/png",
             ".jpg" => "image/jpeg",
             ".jpeg" => "image/jpeg",
+            ".webp" => "image/webp",
             _ => "application/octet-stream"
         };
         part.Headers.ContentType = new MediaTypeHeaderValue(mime);

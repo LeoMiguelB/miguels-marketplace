@@ -82,6 +82,7 @@ Public `GetObject` is allowed on `stream/` (previews) and `cover/` (artwork). Th
 The application supports both **Local Supabase** (for offline development) and **Remote Supabase Cloud** via connection pooling.
 
 #### Local Development (Profile A)
+
 ```bash
 npx supabase start
 npx supabase db reset
@@ -89,32 +90,40 @@ npx supabase db reset
 ```
 
 Local connection string:
+
 ```
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 ```
 
 #### Remote Supabase Cloud (Profile B)
+
 Remote Supabase projects run behind Supavisor connection poolers. Using the pooler ensures IPv4 compatibility and avoids network-unreachable errors on IPv6-restricted networks:
 
 - **Next.js Web App (`app/.env.local`)**: Uses the **Transaction Pooler** (`:6543`) with automatic `prepare: false` and SSL enforcement:
+  
   ```bash
   DATABASE_URL=postgresql://postgres.<PROJECT_REF>:[YOUR-PASSWORD]@aws-0-<REGION>.pooler.supabase.com:6543/postgres?sslmode=require
   SUPABASE_DB_PASSWORD=<your-database-password>
   ```
 - **Admin CLI & Migrations (`app/cli/.env`)**: Uses the **Session Pooler** (`:5432`) for stateful commands and DDL:
+  
   ```bash
   DATABASE_URL=postgresql://postgres.<PROJECT_REF>:[YOUR-PASSWORD]@aws-0-<REGION>.pooler.supabase.com:5432/postgres?sslmode=require
   SUPABASE_DB_PASSWORD=<your-database-password>
   ```
 
 #### Deploying Migrations to Remote Supabase
+
 To apply migrations from `supabase/migrations/` to the remote Supabase project:
+
 ```bash
 npx supabase db push --db-url "postgresql://postgres.<PROJECT_REF>:[PASSWORD]@aws-0-<REGION>.pooler.supabase.com:5432/postgres?sslmode=require" --include-all
 ```
 
 #### Verifying Schema
+
 The schema verification script works with both local and remote databases:
+
 ```bash
 # Verifies database from DATABASE_URL or passes explicit URL:
 ./scripts/verify-schema.sh
@@ -129,6 +138,7 @@ The application supports both **Local MinIO** (default for local development) an
 ### Where to Put Your Credentials
 
 Object storage credentials are kept in two local files (both are gitignored so your secret keys are never committed to git):
+
 1. **`app/.env.local`** — Used by the Next.js web application and the storage test script (`./scripts/verify-storage.sh`).
 2. **`app/cli/.env`** — Used by the .NET admin CLI (`delete --force` and file uploads).
 
@@ -166,12 +176,14 @@ S3_FORCE_PATH_STYLE=false
 - **How downloads work**: When a user fills out the install form, `/api/install` issues a 1-hour presigned download link with `Content-Disposition: attachment`.
 
 #### Backblaze B2 Setup Checklist (100% Private):
+
 1. **Create a Single Bucket**:
    - Bucket Name: e.g. `my-music-bucket` (matches `S3_BUCKET`).
    - Files in Bucket Are: **Private** (no credit card requested).
 2. **Configure CORS Rules**:
    - In Backblaze B2 Console, open your bucket's **Bucket Settings** ➔ **CORS Rules**.
    - Add a rule to allow web browsers to stream with `Range` requests:
+     
      ```json
      [
        {
@@ -242,16 +254,20 @@ Uploads audio and optional cover art through Next.js (`POST /api/admin/upload`),
 ```bash
 cd app/cli
 
-# Basic upload
+# Basic upload (uses the same file for stream preview and download master)
 dotnet run -- create -f /path/to/track.wav -t "Night Drive" -p true
 
+# Dual-file upload with compressed MP3 preview and lossless WAV master
+dotnet run -- create -f /path/to/master.wav -s /path/to/preview.mp3 -t "Night Drive" -p true
+
 # Upload with cover image, BPM, and musical key
-dotnet run -- create -f /path/to/beat.wav -t "Sunset Chill" -p true --cover /path/to/art.png --bpm 120 --key "F# Maj"
+dotnet run -- create -f /path/to/beat.wav -s /path/to/preview.mp3 -t "Sunset Chill" -p true --cover /path/to/art.png --bpm 120 --key "F# Maj"
 ```
 
 Options:
 
-- `-f`, `--file <path>`: Local audio file (`.wav`, `.mp3`, `.flac`, `.aiff`) *(Required)*
+- `-f`, `--file <path>`: Local master audio file (`.wav`, `.mp3`, `.flac`, `.aiff`) *(Required)*
+- `-s`, `--stream <path>`: Optional local streaming preview audio file (e.g. `.mp3`). If omitted, `--file` is used for both stream and download *(Optional)*
 - `-t`, `--title <string>`: Track title *(Required)*
 - `-p`, `--published <true|false>`: Track publication status (`true` or `false`) *(Required)*
 - `--cover <path>`: Local image file (`.png`, `.jpg`, `.webp`, `.avif`) *(Optional)*

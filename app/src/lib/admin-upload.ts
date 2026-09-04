@@ -4,6 +4,7 @@ export type ParsedUpload =
       title: string;
       published: boolean;
       audio: File;
+      streamAudio: File;
       cover: File | null;
     }
   | { ok: false; error: "bad request" };
@@ -12,6 +13,7 @@ export function parseUploadForm(form: FormData): ParsedUpload {
   const title = String(form.get("title") ?? "").trim();
   const publishedRaw = String(form.get("published") ?? "");
   const audio = form.get("file");
+  const streamAudioPart = form.get("stream") ?? form.get("streamFile");
   const coverPart = form.get("cover");
   if (!title || (publishedRaw !== "true" && publishedRaw !== "false")) {
     return { ok: false, error: "bad request" };
@@ -19,6 +21,10 @@ export function parseUploadForm(form: FormData): ParsedUpload {
   if (!(audio instanceof File) || audio.size === 0) {
     return { ok: false, error: "bad request" };
   }
+  const streamAudio =
+    streamAudioPart instanceof File && streamAudioPart.size > 0
+      ? streamAudioPart
+      : audio;
   const cover =
     coverPart instanceof File && coverPart.size > 0 ? coverPart : null;
   return {
@@ -26,6 +32,7 @@ export function parseUploadForm(form: FormData): ParsedUpload {
     title,
     published: publishedRaw === "true",
     audio,
+    streamAudio,
     cover,
   };
 }
@@ -111,9 +118,11 @@ export async function putPlayableBlobs(
   id: string,
   audio: { body: Uint8Array; contentType: string },
   cover: { body: Uint8Array; contentType: string } | null,
+  streamAudio?: { body: Uint8Array; contentType: string },
 ): Promise<PutPlayableResult> {
+  const stream = streamAudio ?? audio;
   const keys = blobKeys(id);
-  await put(keys.streamKey, audio.body, audio.contentType);
+  await put(keys.streamKey, stream.body, stream.contentType);
   await put(keys.downloadKey, audio.body, audio.contentType);
   if (!cover) {
     return {
@@ -136,10 +145,12 @@ export async function putPlayableBlobsToBuckets(
   audio: { body: Uint8Array; contentType: string },
   cover: { body: Uint8Array; contentType: string } | null,
   buckets: { publicBucket: string; privateBucket: string },
+  streamAudio?: { body: Uint8Array; contentType: string },
 ): Promise<PutPlayableResult> {
+  const stream = streamAudio ?? audio;
   const keys = blobKeys(id);
   // Stream goes to public bucket for browser streaming
-  await put(buckets.publicBucket, keys.streamKey, audio.body, audio.contentType);
+  await put(buckets.publicBucket, keys.streamKey, stream.body, stream.contentType);
   // Download master goes to private bucket for gated downloads
   await put(buckets.privateBucket, keys.downloadKey, audio.body, audio.contentType);
 
@@ -180,6 +191,10 @@ export async function handleAdminUpload(
     return Response.json({ error: "bad request" }, { status: 400 });
   }
   const audioBody = new Uint8Array(await parsed.audio.arrayBuffer());
+  const streamAudioBody =
+    parsed.streamAudio === parsed.audio
+      ? audioBody
+      : new Uint8Array(await parsed.streamAudio.arrayBuffer());
   const coverBody = parsed.cover
     ? new Uint8Array(await parsed.cover.arrayBuffer())
     : null;
@@ -191,6 +206,13 @@ export async function handleAdminUpload(
     parsed.audio.name,
     parsed.audio.type,
   );
+  const streamAudioContentType =
+    parsed.streamAudio === parsed.audio
+      ? audioContentType
+      : resolveAudioContentType(
+          parsed.streamAudio.name,
+          parsed.streamAudio.type,
+        );
 
   const isDualBucketPut =
     deps.put.length >= 4 || Boolean(deps.publicBucket && deps.put.length !== 3);
@@ -215,6 +237,10 @@ export async function handleAdminUpload(
           }
         : null,
       { publicBucket, privateBucket },
+      {
+        body: streamAudioBody,
+        contentType: streamAudioContentType,
+      },
     );
 
     return Response.json({

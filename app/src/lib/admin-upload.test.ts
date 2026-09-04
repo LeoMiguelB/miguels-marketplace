@@ -43,6 +43,19 @@ describe("parseUploadForm", () => {
     expect(parsed.cover?.name).toBe("art.png");
   });
 
+  test("ok with separate stream and download audio files", () => {
+    const form = new FormData();
+    form.set("file", audioFile("master.wav", "audio/wav"));
+    form.set("stream", audioFile("preview.mp3", "audio/mpeg"));
+    form.set("title", "dual audio track");
+    form.set("published", "true");
+    const parsed = parseUploadForm(form);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.audio.name).toBe("master.wav");
+    expect(parsed.streamAudio.name).toBe("preview.mp3");
+  });
+
   test("400 when title missing", () => {
     const form = new FormData();
     form.set("file", audioFile());
@@ -315,6 +328,36 @@ describe("handleAdminUpload", () => {
       { bucket: "miguel-music-pub", key: "stream/dual-id", type: "audio/mpeg" },
       { bucket: "miguel-music-priv", key: "download/dual-id", type: "audio/mpeg" },
       { bucket: "miguel-music-pub", key: "cover/dual-id", type: "image/jpeg" },
+    ]);
+  });
+
+  test("uploads distinct stream (MP3) and download (WAV) files to respective buckets", async () => {
+    const form = new FormData();
+    form.set("file", new File([new Uint8Array([1, 2, 3, 4])], "master.wav", { type: "audio/wav" }));
+    form.set("stream", new File([new Uint8Array([5, 6])], "preview.mp3", { type: "audio/mpeg" }));
+    form.set("title", "Night Drive");
+    form.set("published", "true");
+
+    const calls: { bucket: string; key: string; type: string; byteLength: number }[] = [];
+    const res = await handleAdminUpload(uploadRequest(form), {
+      newId: () => "dual-stream-id",
+      endpoint: "https://s3.us-east-005.backblazeb2.com",
+      publicBucket: "miguel-music-pub",
+      privateBucket: "miguel-music-priv",
+      publicUrlBase: "https://cdn.example.com",
+      put: async (targetBucket, key, body, contentType) => {
+        calls.push({ bucket: targetBucket, key, type: contentType, byteLength: body.byteLength });
+      },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.stream_blob_url).toBe("https://cdn.example.com/stream/dual-stream-id");
+    expect(body.download_blob_url).toBe("https://s3.us-east-005.backblazeb2.com/miguel-music-priv/download/dual-stream-id");
+
+    expect(calls).toEqual([
+      { bucket: "miguel-music-pub", key: "stream/dual-stream-id", type: "audio/mpeg", byteLength: 2 },
+      { bucket: "miguel-music-priv", key: "download/dual-stream-id", type: "audio/wav", byteLength: 4 },
     ]);
   });
 
