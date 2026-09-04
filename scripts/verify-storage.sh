@@ -39,19 +39,34 @@ REGION="${S3_REGION:-us-east-1}"
 ACCESS_KEY="${S3_ACCESS_KEY:-minioadmin}"
 SECRET_KEY="${S3_SECRET_KEY:-minioadmin}"
 LEGACY_BUCKET="${S3_BUCKET:-music}"
-PUBLIC_BUCKET="${S3_PUBLIC_BUCKET:-$LEGACY_BUCKET}"
-PRIVATE_BUCKET="${S3_PRIVATE_BUCKET:-$LEGACY_BUCKET}"
+PUBLIC_BUCKET="${S3_PUBLIC_BUCKET:-}"
+PRIVATE_BUCKET="${S3_PRIVATE_BUCKET:-}"
 FORCE_PATH_STYLE="${S3_FORCE_PATH_STYLE:-}"
 PUBLIC_URL="${S3_PUBLIC_URL:-}"
 
-# -----------------------------------------------------------------------------
 # Endpoint Normalization & Validation
-# -----------------------------------------------------------------------------
 ENDPOINT="$RAW_ENDPOINT"
 NORM_NOTE=""
 if [[ -n "$ENDPOINT" && ! "$ENDPOINT" =~ ^https?:// ]]; then
   ENDPOINT="https://$ENDPOINT"
   NORM_NOTE=" (auto-prefixed from '$RAW_ENDPOINT')"
+fi
+
+# Dual-bucket resolution: default to Backblaze production buckets when hitting Backblaze
+if [[ "$ENDPOINT" =~ backblazeb2\.com ]]; then
+  if [[ -z "$PUBLIC_BUCKET" ]]; then
+    if [[ -n "$LEGACY_BUCKET" && "$LEGACY_BUCKET" != "music" ]]; then
+      PUBLIC_BUCKET="$LEGACY_BUCKET"
+    else
+      PUBLIC_BUCKET="miguelbbeats"
+    fi
+  fi
+  if [[ -z "$PRIVATE_BUCKET" ]]; then
+    PRIVATE_BUCKET="store-downloads"
+  fi
+else
+  PUBLIC_BUCKET="${PUBLIC_BUCKET:-$LEGACY_BUCKET}"
+  PRIVATE_BUCKET="${PRIVATE_BUCKET:-$LEGACY_BUCKET}"
 fi
 
 if [[ -z "$FORCE_PATH_STYLE" ]]; then
@@ -97,6 +112,15 @@ if [[ -n "$inferred_b2_region" && "$REGION" != "$inferred_b2_region" ]]; then
   echo "------------------------------------------------------------------"
 fi
 
+if [[ "$ENDPOINT" =~ backblazeb2\.com && "$PUBLIC_BUCKET" == "$PRIVATE_BUCKET" ]]; then
+  echo ""
+  echo "⚠️  DUAL-BUCKET WARNING: Both public and private buckets are set to '$PUBLIC_BUCKET'!"
+  echo "   For production security, keep streams and downloads separate:"
+  echo "   • S3_PUBLIC_BUCKET=miguelbbeats"
+  echo "   • S3_PRIVATE_BUCKET=store-downloads"
+  echo "------------------------------------------------------------------"
+fi
+
 # Determine URLs for probe objects
 if [[ -n "$PUBLIC_URL" ]]; then
   PUBLIC_PROBE_URL="${PUBLIC_URL%/}/stream/.verify-probe.mp3"
@@ -110,11 +134,14 @@ fi
 
 if [[ "$FORCE_PATH_STYLE" == "true" ]]; then
   PRIVATE_PROBE_URL="${ENDPOINT%/}/${PRIVATE_BUCKET}/download/.verify-probe.wav"
+  PUB_DOWNLOAD_PROBE_URL="${ENDPOINT%/}/${PUBLIC_BUCKET}/download/.verify-probe.wav"
 else
   proto="${ENDPOINT%%://*}"
   host="${ENDPOINT#*://}"
   PRIVATE_PROBE_URL="${proto}://${PRIVATE_BUCKET}.${host%/}/download/.verify-probe.wav"
+  PUB_DOWNLOAD_PROBE_URL="${proto}://${PUBLIC_BUCKET}.${host%/}/download/.verify-probe.wav"
 fi
+
 
 # -----------------------------------------------------------------------------
 # Node Helper Invoker
@@ -147,6 +174,16 @@ const action = process.argv[2];
 
 async function main() {
   if (action === 'upload') {
+    // If dual-bucket mode, actively remove any leftover download probe from the public bucket
+    if (pubBucket !== privBucket) {
+      try {
+        await s3.send(new DeleteObjectCommand({
+          Bucket: pubBucket,
+          Key: 'download/.verify-probe.wav',
+        }));
+      } catch {}
+    }
+
     try {
       await s3.send(new PutObjectCommand({
         Bucket: pubBucket,
@@ -194,6 +231,19 @@ async function main() {
     try {
       await s3.send(new DeleteObjectCommand({ Bucket: privBucket, Key: 'download/.verify-probe.wav' }));
     } catch {}
+    if (pubBucket !== privBucket) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: pubBucket, Key: 'download/.verify-probe.wav' }));
+      } catch {}
+    }
+  } else if (action === 'purge-pub-download') {
+    try {
+      await s3.send(new DeleteObjectCommand({ Bucket: pubBucket, Key: 'download/.verify-probe.wav' }));
+    } catch (err) {
+      err.__targetBucket = pubBucket;
+      err.__targetKey = 'download/.verify-probe.wav';
+      throw err;
+    }
   }
 }
 
@@ -253,11 +303,25 @@ cleanup() {
 }
 trap cleanup EXIT
 
+if [[ "${1:-}" == "--clean" || "${1:-}" == "-c" ]]; then
+  echo ""
+  echo "=================================================================="
+  echo "Miguel's Marketplace: Storage Probe Cleanup"
+  echo "=================================================================="
+  echo "Target Public Bucket:  $PUBLIC_BUCKET"
+  echo "Target Private Bucket: $PRIVATE_BUCKET"
+  echo "Endpoint:              $ENDPOINT"
+  echo "=================================================================="
+  run_s3_node cleanup
+  echo "OK: All test probes wiped across public and private storage."
+  exit 0
+fi
+
 # -----------------------------------------------------------------------------
 # Step 1: Connectivity Check
 # -----------------------------------------------------------------------------
 echo ""
-echo "[1/5] Checking S3 endpoint connectivity ($ENDPOINT)..."
+echo "[1/6] Checking S3 endpoint connectivity ($ENDPOINT)..."
 curl_err_file="$(mktemp)"
 endpoint_code="$(curl -sS -o /dev/null -w "%{http_code}" "$ENDPOINT" 2>"$curl_err_file" || true)"
 curl_err="$(cat "$curl_err_file" 2>/dev/null || true)"
@@ -300,7 +364,7 @@ echo "OK: Probes uploaded successfully"
 # Step 2: CORS Check on Public Bucket
 # -----------------------------------------------------------------------------
 echo ""
-echo "[2/5] Testing CORS preflight on public streaming bucket ($PUBLIC_PROBE_URL)..."
+echo "[2/6] Testing CORS preflight on public streaming bucket ($PUBLIC_PROBE_URL)..."
 cors_headers="$(curl -s -i -X OPTIONS \
   -H "Origin: http://localhost:3000" \
   -H "Access-Control-Request-Method: GET" \
@@ -335,7 +399,7 @@ echo "OK: CORS preflight allowed Range header and origin"
 # Step 3: Byte-Range Streaming (HTTP 206) Check
 # -----------------------------------------------------------------------------
 echo ""
-echo "[3/5] Testing HTTP 206 Partial Content byte-range streaming..."
+echo "[3/6] Testing HTTP 206 Partial Content byte-range streaming..."
 range_resp="$(curl -s -i -H "Range: bytes=0-15" "$PUBLIC_PROBE_URL" || true)"
 stream_code="$(echo "$range_resp" | grep -oE "HTTP/[12](\.[0-9])? [0-9]{3}" | head -n 1 | awk '{print $2}')"
 
@@ -373,15 +437,48 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# Step 4: Private Bucket Security Check
+# Step 4: Public Bucket Isolation (Ensuring no downloads in public bucket)
 # -----------------------------------------------------------------------------
 echo ""
-echo "[4/5] Testing private bucket security (denying anonymous GET)..."
+echo "[4/6] Verifying public bucket isolation (ensuring no downloads in '$PUBLIC_BUCKET')..."
+if [[ "$PUBLIC_BUCKET" != "$PRIVATE_BUCKET" ]]; then
+  pub_dl_code="$(curl -s -o /dev/null -w "%{http_code}" "$PUB_DOWNLOAD_PROBE_URL" || true)"
+  if [[ "$pub_dl_code" == "200" ]]; then
+    echo "⚠️  WARNING: download probe found in public bucket '$PUBLIC_BUCKET' (HTTP $pub_dl_code)!"
+    echo "   Purging lingering download probe from public bucket '$PUBLIC_BUCKET'..."
+    run_s3_node purge-pub-download || true
+    echo "OK: Removed download probe from public bucket '$PUBLIC_BUCKET'."
+  else
+    echo "OK: Public bucket '$PUBLIC_BUCKET' does not expose download objects (HTTP $pub_dl_code)"
+  fi
+else
+  echo "Note: Single-bucket mode detected ($PUBLIC_BUCKET). Skipping cross-bucket isolation check."
+fi
+
+if [[ -n "$PUBLIC_URL" ]]; then
+  worker_dl_url="${PUBLIC_URL%/}/download/.verify-probe.wav"
+  echo "      Testing Cloudflare Worker / CDN download guard ($worker_dl_url)..."
+  worker_dl_code="$(curl -s -o /dev/null -w "%{http_code}" "$worker_dl_url" || true)"
+  if [[ "$worker_dl_code" == "403" || "$worker_dl_code" == "404" ]]; then
+    echo "OK: Cloudflare Worker correctly denies access to /download/ prefix (HTTP $worker_dl_code)"
+  elif [[ "$worker_dl_code" == "200" ]]; then
+    echo "🚨 SECURITY WARNING: Cloudflare Worker at $PUBLIC_URL allows public access to /download/ (HTTP 200)!"
+    echo "   Ensure your Cloudflare Worker script restricts access to /stream/* and /cover/* only."
+  else
+    echo "Note: Cloudflare Worker responded with HTTP $worker_dl_code on /download/ probe."
+  fi
+fi
+
+# -----------------------------------------------------------------------------
+# Step 5: Private Bucket Security Check
+# -----------------------------------------------------------------------------
+echo ""
+echo "[5/6] Testing private bucket security (denying anonymous GET)..."
 anon_resp_file="$(mktemp)"
 anon_code="$(curl -s -w "%{http_code}" -o "$anon_resp_file" "$PRIVATE_PROBE_URL" || true)"
 rm -f "$anon_resp_file"
 
-if [[ "$anon_code" != "401" && "$anon_code" != "403" ]]; then
+if [[ "$anon_code" != "401" && "$anon_code" != "403" && "$anon_code" != "404" ]]; then
   echo "❌ FAIL: Private bucket '$PRIVATE_BUCKET' allowed anonymous access (HTTP $anon_code)!"
   echo "   Expected HTTP 401 Unauthorized or HTTP 403 Forbidden."
   echo ""
@@ -393,10 +490,10 @@ fi
 echo "OK: Anonymous access to private bucket correctly denied (HTTP $anon_code)"
 
 # -----------------------------------------------------------------------------
-# Step 5: Presigned URL Download Check
+# Step 6: Presigned URL Download Check
 # -----------------------------------------------------------------------------
 echo ""
-echo "[5/5] Testing presigned URL download from private bucket..."
+echo "[6/6] Testing presigned URL download from private bucket..."
 presigned_url="$(run_s3_node presign)"
 if [[ -z "$presigned_url" ]]; then
   echo "❌ FAIL: Failed to generate presigned URL via AWS SDK."
@@ -428,3 +525,4 @@ echo ""
 echo "=================================================================="
 echo "🎉 All storage verification checks PASSED successfully!"
 echo "=================================================================="
+

@@ -171,18 +171,18 @@ S3_FORCE_PATH_STYLE=false
 
 ### Profile C: Production Backblaze B2 (Dual Bucket: Public Streams + Private Downloads)
 
-If you prefer un-signed public URLs for streaming previews and have a card on file with Backblaze:
+If you use dual buckets for public previews and private gated downloads (with Cloudflare Worker for zero-cost egress):
 
 ```bash
 S3_ENDPOINT=https://s3.<your-region>.backblazeb2.com
 S3_REGION=<your-region>
 S3_ACCESS_KEY=<your-keyID>
 S3_SECRET_KEY=<your-applicationKey>
-S3_PUBLIC_BUCKET=miguel-music-pub
-S3_PRIVATE_BUCKET=miguel-music-priv
+S3_PUBLIC_BUCKET=miguelbbeats
+S3_PRIVATE_BUCKET=store-downloads
 S3_FORCE_PATH_STYLE=false
-# Optional: CDN / custom domain for free egress (Cloudflare Bandwidth Alliance):
-# S3_PUBLIC_URL=https://media.yourdomain.com
+# Cloudflare Worker CDN for free egress (Cloudflare Bandwidth Alliance):
+S3_PUBLIC_URL=https://miguels-marketplace-worker.lilpopcorn54321.workers.dev
 ```
 
 ## Run the store

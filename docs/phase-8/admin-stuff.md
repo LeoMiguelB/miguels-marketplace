@@ -1,6 +1,9 @@
-# TODO:
-- need to setup cloudflare to proxy against backblaze for free egress
-- need to configure CORS rules on backblaze
+# Production Storage & CDN Architecture
+- Public Streaming & Artwork Bucket: `miguelbbeats`
+- Private Master Downloads Bucket: `store-downloads`
+- Cloudflare Worker CDN for Zero-Cost Egress: `https://miguels-marketplace-worker.lilpopcorn54321.workers.dev`
+- Download Protection: Worker only proxies `/stream/` and `/cover/`; `/download/` is private and gated behind `/api/install` presigned URLs.
+
 
 # CORS policy Notes
 
