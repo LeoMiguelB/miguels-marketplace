@@ -93,4 +93,47 @@ describe("POST /api/install", () => {
     const data = await res.json();
     expect(data.status).toBe("DOWNLOAD_UNAVAILABLE");
   });
+
+  test("400 when email format is invalid", async () => {
+    const req = new NextRequest("http://127.0.0.1/api/install", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "invalid-email-address",
+        trackId: 1,
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe("Invalid or missing email");
+  });
+
+  test("400 when role is not in allowed enum", async () => {
+    const req = new NextRequest("http://127.0.0.1/api/install", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "producer@example.com",
+        role: "unauthorized_role",
+        trackId: 1,
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe("Invalid role specified");
+  });
+
+  test("400 when trackId is not a valid positive integer", async () => {
+    const req = new NextRequest("http://127.0.0.1/api/install", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "producer@example.com",
+        trackId: -5,
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe("Invalid track ID");
+  });
 });

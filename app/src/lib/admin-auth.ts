@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 
 export function adminSecretOk(
   headerValue: string | null,
@@ -10,10 +10,7 @@ export function adminSecretOk(
   if (!headerValue) {
     return false;
   }
-  const headerBuf = Buffer.from(headerValue);
-  const expectedBuf = Buffer.from(expected);
-  if (headerBuf.length !== expectedBuf.length) {
-    return false;
-  }
-  return timingSafeEqual(headerBuf, expectedBuf);
+  const headerHash = createHash("sha256").update(headerValue).digest();
+  const expectedHash = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(headerHash, expectedHash);
 }

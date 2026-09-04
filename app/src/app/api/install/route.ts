@@ -9,21 +9,40 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, name, role, instagram, x, trackId } = body;
 
-    if (!email || typeof trackId === "undefined") {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const trimmedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+    const idNum = Number(trackId);
+
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail) || trimmedEmail.length > 255) {
+      return NextResponse.json({ error: "Invalid or missing email" }, { status: 400 });
     }
 
-    const roleValue = role === "" ? null : role;
+    if (typeof trackId === "undefined" || !Number.isInteger(idNum) || idNum <= 0) {
+      return NextResponse.json({ error: "Invalid track ID" }, { status: 400 });
+    }
+
+    const rawRole = typeof role === "string" ? role.trim().toLowerCase() : "";
+    let roleValue: string | null = null;
+    if (rawRole) {
+      if (rawRole === "producer" || rawRole === "artist" || rawRole === "other") {
+        roleValue = rawRole;
+      } else {
+        return NextResponse.json({ error: "Invalid role specified" }, { status: 400 });
+      }
+    }
+
+    const safeName = typeof name === "string" && name.trim() ? name.trim().slice(0, 100) : null;
+    const safeInstagram = typeof instagram === "string" && instagram.trim() ? instagram.trim().slice(0, 50) : null;
+    const safeX = typeof x === "string" && x.trim() ? x.trim().slice(0, 50) : null;
 
     // Upsert contact
     const [contact] = await sql`
       INSERT INTO contacts (email, name, role, instagram, x_handle)
       VALUES (
-        ${email},
-        ${name || null},
+        ${trimmedEmail},
+        ${safeName},
         ${roleValue},
-        ${instagram || null},
-        ${x || null}
+        ${safeInstagram},
+        ${safeX}
       )
       ON CONFLICT (email) DO UPDATE SET
         name = EXCLUDED.name,
@@ -37,15 +56,15 @@ export async function POST(req: NextRequest) {
     // Upsert install
     await sql`
       INSERT INTO installs (contact_id, playable_audio_id, count)
-      VALUES (${contact.id}, ${trackId}, 1)
+      VALUES (${contact.id}, ${idNum}, 1)
       ON CONFLICT (contact_id, playable_audio_id) DO UPDATE SET
         count = installs.count + 1,
         updated_at = now()
     `;
 
-    // Fetch title and download_blob_url
+    // Fetch title and download_blob_url (published tracks only)
     const [audio] = await sql`
-      SELECT title, download_blob_url FROM playable_audio WHERE id = ${trackId}
+      SELECT title, download_blob_url FROM playable_audio WHERE id = ${idNum} AND published = true
     `;
 
     if (!audio || !audio.download_blob_url) {

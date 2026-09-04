@@ -11,17 +11,17 @@ describe("parseS3Url", () => {
   });
 
   test("parses Backblaze B2 path-style URL", () => {
-    const result = parseS3Url("https://s3.us-east-005.backblazeb2.com/miguelbbeats/download/track-1.wav");
+    const result = parseS3Url("https://s3.us-east-005.backblazeb2.com/sample-music-bucket/download/track-1.wav");
     expect(result).toEqual({
-      bucket: "miguelbbeats",
+      bucket: "sample-music-bucket",
       key: "download/track-1.wav",
     });
   });
 
   test("parses virtual-host style URL", () => {
-    const result = parseS3Url("https://miguelbbeats.s3.us-east-005.backblazeb2.com/cover/art-1.jpg");
+    const result = parseS3Url("https://sample-music-bucket.s3.us-east-005.backblazeb2.com/cover/art-1.jpg");
     expect(result).toEqual({
-      bucket: "miguelbbeats",
+      bucket: "sample-music-bucket",
       key: "cover/art-1.jpg",
     });
   });

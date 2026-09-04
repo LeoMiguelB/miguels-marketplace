@@ -1,15 +1,28 @@
-.env
-.env.local
-.env*.local
-app/.env.local
-app/cli/.env
+# Environment files
+**/.env
+**/.env.*
+**/.env*.local
+!**/.env.example
+
+# Token and credential files
+*.tokens
+.backblaze*
+*.pem
+*.key
+*.cert
+
+# Dependencies and build outputs
 app/node_modules/
 app/.next/
 app/out/
 app/cli/**/bin/
 app/cli/**/obj/
+*.tsbuildinfo
+
+# Supabase
 supabase/.temp/
 supabase/.branches/
+
+# Caches and internal tools
 .prompt-cache
 .superpowers/
-/.backblaze-tokens

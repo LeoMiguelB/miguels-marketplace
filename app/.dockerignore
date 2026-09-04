@@ -1,0 +1,17 @@
+.git
+.gitignore
+.dockerignore
+.env*
+!.env.example
+*.tokens
+.backblaze*
+.prompt-cache/
+.superpowers/
+node_modules/
+npm-debug.log*
+.next/
+out/
+build/
+bin/
+obj/
+*.tsbuildinfo

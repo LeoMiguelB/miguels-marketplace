@@ -135,7 +135,7 @@ S3_ENDPOINT=https://s3.<your-region>.backblazeb2.com
 S3_REGION=<your-region>
 S3_ACCESS_KEY=<your-keyID>
 S3_SECRET_KEY=<your-applicationKey>
-S3_BUCKET=miguelbbeats
+S3_BUCKET=<your-bucket-name>
 S3_FORCE_PATH_STYLE=false
 ```
 
@@ -144,7 +144,7 @@ S3_FORCE_PATH_STYLE=false
 
 #### Backblaze B2 Setup Checklist (100% Private):
 1. **Create a Single Bucket**:
-   - Bucket Name: e.g. `miguelbbeats` (matches `S3_BUCKET`).
+   - Bucket Name: e.g. `my-music-bucket` (matches `S3_BUCKET`).
    - Files in Bucket Are: **Private** (no credit card requested).
 2. **Configure CORS Rules**:
    - In Backblaze B2 Console, open your bucket's **Bucket Settings** ➔ **CORS Rules**.
