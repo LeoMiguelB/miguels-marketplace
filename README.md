@@ -77,27 +77,50 @@ docker compose up -d minio minio-init
 
 Public `GetObject` is allowed on `stream/` (previews) and `cover/` (artwork). The `download/` prefix stays private. `scripts/verify-minio.sh` ensures bucket policies are consistently applied even across volume re-creations.
 
-**2. Postgres** (Supabase local):
+**2. Postgres** (Local Supabase or Remote Supabase Cloud):
 
+The application supports both **Local Supabase** (for offline development) and **Remote Supabase Cloud** via connection pooling.
+
+#### Local Development (Profile A)
 ```bash
 npx supabase start
 npx supabase db reset
 ./scripts/verify-schema.sh   # verifies playable_audio, contacts, installs; expect: Schema OK
 ```
 
-`db reset` applies all SQL migrations in `supabase/migrations/`:
-
-- `playable_audio`: Stores track title, `stream_blob_url`, `download_blob_url`, `cover_blob_url`, `published` status, `bpm`, and musical `key`.
-- `contacts`: Stores downloader email, name, role, and social handles.
-- `installs`: Tracks download frequency per contact and track.
-
-The default local database connection string is:
-
+Local connection string:
 ```
-postgresql://postgres:postgres@127.0.0.1:54322/postgres
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 ```
 
-If `supabase start` prints a different URL, update `DATABASE_URL` in `app/.env.local` and `app/cli/.env`.
+#### Remote Supabase Cloud (Profile B)
+Remote Supabase projects run behind Supavisor connection poolers. Using the pooler ensures IPv4 compatibility and avoids network-unreachable errors on IPv6-restricted networks:
+
+- **Next.js Web App (`app/.env.local`)**: Uses the **Transaction Pooler** (`:6543`) with automatic `prepare: false` and SSL enforcement:
+  ```bash
+  DATABASE_URL=postgresql://postgres.<PROJECT_REF>:[YOUR-PASSWORD]@aws-0-<REGION>.pooler.supabase.com:6543/postgres?sslmode=require
+  SUPABASE_DB_PASSWORD=<your-database-password>
+  ```
+- **Admin CLI & Migrations (`app/cli/.env`)**: Uses the **Session Pooler** (`:5432`) for stateful commands and DDL:
+  ```bash
+  DATABASE_URL=postgresql://postgres.<PROJECT_REF>:[YOUR-PASSWORD]@aws-0-<REGION>.pooler.supabase.com:5432/postgres?sslmode=require
+  SUPABASE_DB_PASSWORD=<your-database-password>
+  ```
+
+#### Deploying Migrations to Remote Supabase
+To apply migrations from `supabase/migrations/` to the remote Supabase project:
+```bash
+npx supabase db push --db-url "postgresql://postgres.<PROJECT_REF>:[PASSWORD]@aws-0-<REGION>.pooler.supabase.com:5432/postgres?sslmode=require" --include-all
+```
+
+#### Verifying Schema
+The schema verification script works with both local and remote databases:
+```bash
+# Verifies database from DATABASE_URL or passes explicit URL:
+./scripts/verify-schema.sh
+# OR
+./scripts/verify-schema.sh "postgresql://postgres.<PROJECT_REF>:[PASSWORD]@aws-0-<REGION>.pooler.supabase.com:5432/postgres?sslmode=require"
+```
 
 ## Object Storage Configuration (Local MinIO vs. Backblaze B2)
 

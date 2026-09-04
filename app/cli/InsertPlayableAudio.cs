@@ -37,6 +37,12 @@ public static class InsertPlayableAudioRow
 
     public static string ToNpgsqlConnectionString(string databaseUrl)
     {
+        var passwordEnv = Environment.GetEnvironmentVariable("SUPABASE_DB_PASSWORD");
+        if (!string.IsNullOrEmpty(passwordEnv) && databaseUrl.Contains("[YOUR-PASSWORD]"))
+        {
+            databaseUrl = databaseUrl.Replace("[YOUR-PASSWORD]", Uri.EscapeDataString(passwordEnv));
+        }
+
         if (!databaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
             && !databaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
         {
@@ -45,6 +51,9 @@ public static class InsertPlayableAudioRow
 
         var uri = new Uri(databaseUrl);
         var userInfo = uri.UserInfo.Split(':', 2);
+        var isLocal = uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                   || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+
         var builder = new NpgsqlConnectionStringBuilder
         {
             Host = uri.Host,
@@ -52,6 +61,7 @@ public static class InsertPlayableAudioRow
             Username = Uri.UnescapeDataString(userInfo[0]),
             Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "",
             Database = uri.AbsolutePath.TrimStart('/'),
+            SslMode = isLocal ? SslMode.Disable : SslMode.Require,
         };
         return builder.ConnectionString;
     }
